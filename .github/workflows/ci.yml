@@ -1,0 +1,26 @@
+name: Continuous Integration and Deployment
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Install rust
+      - uses: actions-rs/toolchain@v1
+        with:
+            profile: minimal
+            toolchain: stable
+            target: armv7-unknown-linux-gnueabihf
+            override: true
+          
+      - name: Build
+        run: cargo build --release --verbose
+        
+      - name: Run tests
+        run: cargo test --verbose

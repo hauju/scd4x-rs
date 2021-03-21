@@ -2,7 +2,7 @@
 name = "scd4x"
 version = "0.1.0"
 authors = ["Hauke Jung <hauke.jung@outlook.de>"]
-documentation = "https://docs.rs/sgp30"
+documentation = "https://docs.rs/scd4x"
 repository = "https://github.com/hauju/scd4x-rs.git"
 license = "MIT OR Apache-2.0"
 description = "Rust driver for the Sensirion SCD4x series. Carbon Dioxide / Temperature / Humidity sensors."

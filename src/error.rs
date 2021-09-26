@@ -9,8 +9,10 @@ pub enum Error<E> {
     I2c(E),
     /// CRC checksum validation failed
     Crc,
-    ///Self-test measure failure
+    /// Self-test measure failure
     SelfTest,
+    /// Not allowed when periodic measurement is running
+    NotAllowed,
 }
 
 impl<E, I2cWrite, I2cRead> From<i2c::Error<I2cWrite, I2cRead>> for Error<E>

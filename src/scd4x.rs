@@ -72,7 +72,7 @@ where
         let humidity = u16::from_be_bytes([buf[6], buf[7]]);
 
         Ok(SensorData {
-            co2: co2,
+            co2,
             temperature: ((((21875 * temperature) >> 13) - 45000) as f32) / 1000.0,
             humidity: (((12500 * humidity) >> 13) as f32) / 1000.0,
         })
@@ -90,8 +90,28 @@ where
 
     /// Set sensor temperature offset
     pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
-        let t_offset = (offset *65536.0 / 175.0) as i16;
+        let t_offset = (offset * 65536.0 / 175.0) as i16;
         self.write_parameter(Command::SetTemperatureOffset, t_offset as u16)?;
+        Ok(())
+    }
+
+    /// Get sensor altitude in meters above sea level.
+    pub fn altitude(&mut self) -> Result<u16, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
+        let altitude = u16::from_be_bytes([buf[0], buf[1]]);
+        Ok(altitude)
+    }
+
+    /// Set sensor altitude in meters above sea level.
+    pub fn set_altitude(&mut self, altitude: u16) -> Result<(), Error<E>> {
+        self.write_parameter(Command::SetSensorAltitude, altitude)?;
+        Ok(())
+    }
+
+    /// Set ambient pressure to enable continious pressure compensation
+    pub fn set_ambient_pressure(&mut self, pressure_hpa: u16) -> Result<(), Error<E>> {
+        self.write_parameter(Command::SetAmbientPressure, pressure_hpa)?;
         Ok(())
     }
 
@@ -102,7 +122,7 @@ where
 
     pub fn get_serial_number(&mut self) -> Result<u64, Error<E>> {
         let mut buf = [0; 9];
-        self.delayed_read_cmd(Command::GetSerial, &mut buf)?;
+        self.delayed_read_cmd(Command::GetSerialNumber, &mut buf)?;
         //let serial = u16::from_be_bytes([serial[0], serial[1]]);
         let serial = u64::from(buf[0]) << 40
             | u64::from(buf[1]) << 32
@@ -154,7 +174,11 @@ where
         buf[2..4].copy_from_slice(&d);
         buf[4] = crc8::calculate(&d);
 
-        self.i2c.write(SCD4X_I2C_ADDRESS, buf).map_err(Error::I2c)
+        self.i2c
+            .write(SCD4X_I2C_ADDRESS, &buf)
+            .map_err(Error::I2c)?;
+        self.delay.delay_ms(delay);
+        Ok(())
     }
 }
 
@@ -175,7 +199,7 @@ mod tests {
     #[test]
     fn test_get_serial_number() {
         // Arrange
-        let (cmd, _) = Command::GetSerial.as_tuple();
+        let (cmd, _, _) = Command::GetSerialNumber.as_tuple();
         let expectations = [
             Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
             Transaction::read(

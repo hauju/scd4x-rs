@@ -13,6 +13,8 @@ pub enum Error<E> {
     SelfTest,
     /// Not allowed when periodic measurement is running
     NotAllowed,
+    /// Internal fail
+    Internal
 }
 
 impl<E, I2cWrite, I2cRead> From<i2c::Error<I2cWrite, I2cRead>> for Error<E>

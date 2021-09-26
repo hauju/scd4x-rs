@@ -91,7 +91,7 @@ where
     /// Set sensor temperature offset
     pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
         let t_offset = (offset * 65536.0 / 175.0) as i16;
-        self.write_parameter(Command::SetTemperatureOffset, t_offset as u16)?;
+        self.write_command_with_data(Command::SetTemperatureOffset, t_offset as u16)?;
         Ok(())
     }
 
@@ -105,14 +105,29 @@ where
 
     /// Set sensor altitude in meters above sea level.
     pub fn set_altitude(&mut self, altitude: u16) -> Result<(), Error<E>> {
-        self.write_parameter(Command::SetSensorAltitude, altitude)?;
+        self.write_command_with_data(Command::SetSensorAltitude, altitude)?;
         Ok(())
     }
 
     /// Set ambient pressure to enable continious pressure compensation
     pub fn set_ambient_pressure(&mut self, pressure_hpa: u16) -> Result<(), Error<E>> {
-        self.write_parameter(Command::SetAmbientPressure, pressure_hpa)?;
+        self.write_command_with_data(Command::SetAmbientPressure, pressure_hpa)?;
         Ok(())
+    }
+
+    /// Perform forced recalibration
+    pub fn forced_recalibration(&mut self, target_co2_concentration: u16) -> Result<u16, Error<E>> {
+        let frc_correction = self.delayed_read_cmd_with_data(
+            Command::PerformForcedRecalibration,
+            target_co2_concentration,
+        )?;
+        if frc_correction == u16::MAX {
+            return Err(Error::Internal);
+        }
+        match frc_correction.checked_sub(0x8000) {
+            Some(concentration) => Ok(concentration),
+            None => Err(Error::Internal),
+        }
     }
 
     pub fn reinit(&mut self) -> Result<(), Error<E>> {
@@ -149,6 +164,15 @@ where
         Ok(())
     }
 
+    /// Send command with parameter, takes response
+    fn delayed_read_cmd_with_data(&mut self, cmd: Command, data: u16) -> Result<u16, Error<E>> {
+        self.write_command_with_data(cmd, data)?;
+        let mut buf = [0; 3];
+        i2c::read_words_with_crc(&mut self.i2c, SCD4X_I2C_ADDRESS, &mut buf)?;
+
+        Ok(u16::from_be_bytes([buf[0], buf[1]]))
+    }
+
     /// Writes commands without additional arguments.
     fn write_command(&mut self, cmd: Command) -> Result<(), Error<E>> {
         let (command, delay, allowed_if_running) = cmd.as_tuple();
@@ -161,7 +185,7 @@ where
     }
 
     /// Sets sensor internal parameter
-    fn write_parameter(&mut self, cmd: Command, data: u16) -> Result<(), Error<E>> {
+    fn write_command_with_data(&mut self, cmd: Command, data: u16) -> Result<(), Error<E>> {
         let (command, delay, allowed_if_running) = cmd.as_tuple();
         if !allowed_if_running && self.is_running {
             return Err(Error::NotAllowed);

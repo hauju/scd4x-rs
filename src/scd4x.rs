@@ -9,6 +9,7 @@ use sensirion_i2c::{crc8, i2c};
 
 const SCD4X_I2C_ADDRESS: u8 = 0x62;
 
+/// SCD4X sensor instance. Use related methods to take measurements.
 #[derive(Debug, Default)]
 pub struct Scd4x<I2C, D> {
     i2c: I2C,
@@ -285,11 +286,6 @@ mod tests {
     use self::hal::i2c::{Mock as I2cMock, Transaction};
     use super::*;
 
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-
     /// Test the get_serial_number function
     #[test]
     fn test_get_serial_number() {
@@ -305,7 +301,7 @@ mod tests {
         let mock = I2cMock::new(&expectations);
         let mut sensor = Scd4x::new(mock, DelayMock);
         // Act
-        let serial = sensor.get_serial_number().unwrap();
+        let serial = sensor.serial_number().unwrap();
         // Assert
         assert_eq!(serial, 0xbeefbeefbeef);
     }

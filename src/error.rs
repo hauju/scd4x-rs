@@ -2,7 +2,7 @@ use embedded_hal as hal;
 use hal::blocking::i2c::{Read, Write};
 use sensirion_i2c::i2c;
 
-/// Scd4x errors
+/// SCD4X errors
 #[derive(Debug)]
 pub enum Error<E> {
     /// I²C bus error

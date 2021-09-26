@@ -12,7 +12,7 @@ fn main() {
     sensor.stop_periodic_measurement().unwrap();
     sensor.reinit().unwrap();
 
-    let serial = sensor.get_serial_number().unwrap();
+    let serial = sensor.serial_number().unwrap();
     println!("serial: {:#04x}", serial);
 
     sensor.start_periodic_measurement().unwrap();
@@ -20,13 +20,11 @@ fn main() {
     loop {
         hal::Delay.delay_ms(5000u16);
 
-        let opt = sensor.read_measurement_raw().unwrap();
-        match opt {
-            Some(data) => println!(
-                "CO2: {0}, Temperature: {1} m°C, Humidity: {2} mRH",
-                data.co2, data.temperature, data.humidity
-            ),
-            _ => println!("No data!"),
-        };
+        let data = sensor.measurement().unwrap();
+
+        println!(
+            "CO2: {0}, Temperature: {1} m°C, Humidity: {2} mRH",
+            data.co2, data.temperature, data.humidity
+        );
     }
 }

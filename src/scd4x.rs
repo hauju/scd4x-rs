@@ -202,8 +202,27 @@ where
         Ok(())
     }
 
+    /// On-demand measurement of CO₂ concentration, relative humidity and temperature. 
+    /// The sensor output is read with the measurement method.
+    #[cfg(feature = "scd41")]
+    pub fn measure_single_shot(&mut self) -> Result<(), Error<E>>{
+        self.write_command(Command::MeasureSingleShot)?;
+        Ok(())
+    }
+
+    /// On-demand measurement of relative humidity and temperature only.
+    pub fn measure_single_shot_rht(&mut self) ->Result<(), Error<E>> {
+        self.write_command(Command::MeasureSingleShotRhtOnly)?;
+        Ok(())
+    }
+
+    /// Put the sensor from idle to sleep mode to reduce current consumption.
+    pub fn power_down(&mut self) -> Result<(), Error<E>>{
+        self.write_command(Command::PowerDown)?;
+        Ok(())
+    }
+
     /// Wake up sensor from sleep mode to idle mode.
-    /// Only available in sleep mode.
     pub fn wake_up(&mut self) {
         // Sensor does not acknowledge the wake-up call, error is ignored
         self.write_command(Command::WakeUp).ok();

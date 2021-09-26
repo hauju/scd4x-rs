@@ -61,7 +61,7 @@ where
         })
     }
 
-    /// Read and convert sensor data
+    /// Read converted sensor data
     pub fn measurement(&mut self) -> Result<SensorData, Error<E>> {
         let mut buf = [0; 9];
         self.delayed_read_cmd(Command::ReadMeasurement, &mut buf)?;
@@ -130,15 +130,47 @@ where
         }
     }
 
-    pub fn reinit(&mut self) -> Result<(), Error<E>> {
-        self.write_command(Command::Reinit)?;
+    /// Get the status of automatic self-calibration
+    pub fn automatic_self_calibration(&mut self) -> Result<bool, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::GetAutomaticSelfCalibrationEnabled, &mut buf)?;
+        let status = u16::from_be_bytes([buf[0], buf[1]]) != 0;
+        Ok(status)
+    }
+
+    /// Enable or disable automatic self-calibration
+    pub fn set_automatic_self_calibration(&mut self, enabled: bool) -> Result<(), Error<E>> {
+        self.write_command_with_data(Command::SetAutomaticSelfCalibrationEnabled, enabled as u16)?;
         Ok(())
     }
 
-    pub fn get_serial_number(&mut self) -> Result<u64, Error<E>> {
+    /// Start low power periodic measurements
+    pub fn start_low_power_periodic_measurements(&mut self) -> Result<(), Error<E>> {
+        self.write_command(Command::StartLowPowerPeriodicMeasurement)?;
+        Ok(())
+    }
+
+    /// Check whether new measurement data is available for read-out.
+    pub fn data_ready_status(&mut self) -> Result<bool, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::GetDataReadyStatus, &mut buf)?;
+        let status = u16::from_be_bytes([buf[0], buf[1]]);
+
+        // 7FF is the last 11 bytes. If they are all zeroes, then data isn't ready.
+        let ready = (status & 0x7FF) != 0;
+        Ok(ready)
+    }
+
+    /// Save settings to non-volatile memory
+    pub fn persist_settings(&mut self) -> Result<(), Error<E>> {
+        self.write_command(Command::PersistSettings)?;
+        Ok(())
+    }
+
+    /// Get 48-bit serial number
+    pub fn serial_number(&mut self) -> Result<u64, Error<E>> {
         let mut buf = [0; 9];
         self.delayed_read_cmd(Command::GetSerialNumber, &mut buf)?;
-        //let serial = u16::from_be_bytes([serial[0], serial[1]]);
         let serial = u64::from(buf[0]) << 40
             | u64::from(buf[1]) << 32
             | u64::from(buf[3]) << 24
@@ -146,8 +178,28 @@ where
             | u64::from(buf[6]) << 8
             | u64::from(buf[7]);
 
-        //let serial = u64::from_be_bytes([0x00, 0x00, buf[0], buf[1], buf[3], buf[4], buf[6], buf[7]]);
         Ok(serial)
+    }
+
+    ///  End-of-line test to confirm sensor functionality.
+    pub fn self_test_is_ok(&mut self) -> Result<bool, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::PerformSelfTest, &mut buf)?;
+
+        let status = u16::from_be_bytes([buf[0], buf[1]]) == 0;
+        Ok(status)
+    }
+
+    /// Initiates the reset of all configurations stored in the EEPROM and erases the FRC and ASC algorithm history.
+    pub fn factory_reset(&mut self) -> Result<(), Error<E>> {
+        self.write_command(Command::PerformFactoryReset)?;
+        Ok(())
+    }
+
+    /// The reinit command reinitializes the sensor by reloading user settings from EEPROM.
+    pub fn reinit(&mut self) -> Result<(), Error<E>> {
+        self.write_command(Command::Reinit)?;
+        Ok(())
     }
 
     /// Wake up sensor from sleep mode to idle mode.

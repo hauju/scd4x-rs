@@ -11,7 +11,8 @@ categories = ["embedded", "no-std"]
 readme = "README.md"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+scd41 = []
 
 [dependencies]
 sensirion-i2c = "0.1"
@@ -19,4 +20,4 @@ embedded-hal = "0.2"
 
 [dev-dependencies]
 linux-embedded-hal = "0.3"
-embedded-hal-mock = "0.7"
+embedded-hal-mock = "0.8"

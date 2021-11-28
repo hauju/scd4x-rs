@@ -1,6 +1,6 @@
 [package]
 name = "scd4x"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Hauke Jung <hauke.jung@outlook.de>"]
 documentation = "https://docs.rs/scd4x"
 repository = "https://github.com/hauju/scd4x-rs.git"

@@ -23,7 +23,7 @@ fn main() {
         let data = sensor.measurement().unwrap();
 
         println!(
-            "CO2: {0}, Temperature: {1} m°C, Humidity: {2} mRH",
+            "CO2: {0}, Temperature: {1:#.2} °C, Humidity: {2:#.2} RH",
             data.co2, data.temperature, data.humidity
         );
     }

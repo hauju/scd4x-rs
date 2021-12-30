@@ -74,8 +74,8 @@ where
 
         Ok(SensorData {
             co2,
-            temperature: ((((21875 * temperature) >> 13) - 45000) as f32) / 1000.0,
-            humidity: (((12500 * humidity) >> 13) as f32) / 1000.0,
+            temperature: temperature as f32 * 175_f32 / 65536_f32 - 45_f32,
+            humidity: humidity as f32 * 100_f32 / 65536_f32,
         })
     }
 
@@ -305,4 +305,26 @@ mod tests {
         // Assert
         assert_eq!(serial, 0xbeefbeefbeef);
     }
+
+     /// Test the measurement function
+     #[test]
+     fn test_measurement() {
+         // Arrange
+         let (cmd, _, _) = Command::ReadMeasurement.as_tuple();
+         let expectations = [
+             Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+             Transaction::read(
+                 SCD4X_I2C_ADDRESS,
+                 vec![0x03, 0xE8, 0xD4, 0x62, 0x03, 0x5E, 0x80, 0x00, 0xA2],
+             ),
+         ];
+         let mock = I2cMock::new(&expectations);
+         let mut sensor = Scd4x::new(mock, DelayMock);
+         // Act
+         let data = sensor.measurement().unwrap();
+         // Assert
+         assert_eq!(data.co2, 1000_u16);
+         assert_eq!(data.temperature, 22.000198_f32);
+         assert_eq!(data.humidity, 50_f32);
+     }
 }

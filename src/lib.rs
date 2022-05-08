@@ -19,7 +19,7 @@ mod log {
 
 
 mod scd4x;
-pub use scd4x::Scd4x;
+pub use crate::scd4x::Scd4x;
 
 mod error;
 pub use error::Error;

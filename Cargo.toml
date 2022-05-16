@@ -13,11 +13,28 @@ edition = "2018"
 
 [features]
 scd41 = []
+util = [ "structopt", "simplelog", "humantime", "linux-embedded-hal", "anyhow" ]
+default = [ "util" ]
 
 [dependencies]
 sensirion-i2c = "0.1"
 embedded-hal = "0.2"
 
+log = { version = "0.4.16", default_features = false }
+defmt = { version = "0.3.0", optional = true }
+anyhow = { version = "1.0.56", optional=true, default_features = false }
+
+structopt = { version = "0.3.26", optional = true }
+linux-embedded-hal = { version = "0.3.2", optional = true }
+simplelog = { version = "0.12.0", optional = true }
+humantime = { version = "2.1.0", optional = true }
+
+
 [dev-dependencies]
 linux-embedded-hal = "0.3"
 embedded-hal-mock = "0.8"
+
+[[bin]]
+name = "scd4x-util"
+path = "src/main.rs"
+required-features = ["util"]

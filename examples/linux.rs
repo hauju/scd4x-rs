@@ -2,7 +2,7 @@ use embedded_hal::blocking::delay::DelayMs;
 use hal::{Delay, I2cdev};
 use linux_embedded_hal as hal;
 
-use scd4x::scd4x::Scd4x;
+use scd4x::Scd4x;
 
 fn main() {
     let dev = I2cdev::new("/dev/i2c-1").unwrap();

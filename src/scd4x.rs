@@ -99,7 +99,7 @@ where
     /// Get sensor altitude in meters above sea level.
     pub fn altitude(&mut self) -> Result<u16, Error<E>> {
         let mut buf = [0; 3];
-        self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
+        self.delayed_read_cmd(Command::GetSensorAltitude, &mut buf)?;
         let altitude = u16::from_be_bytes([buf[0], buf[1]]);
         Ok(altitude)
     }

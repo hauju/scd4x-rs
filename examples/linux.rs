@@ -8,6 +8,7 @@ fn main() {
     let dev = I2cdev::new("/dev/i2c-1").unwrap();
     let mut sensor = Scd4x::new(dev, Delay);
 
+    #[cfg(feature = "scd41")]
     sensor.wake_up();
     sensor.stop_periodic_measurement().unwrap();
     sensor.reinit().unwrap();

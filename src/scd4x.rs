@@ -264,7 +264,7 @@ where
         if !allowed_if_running && self.is_running {
             return Err(Error::NotAllowed);
         }
-        i2c::write_command(&mut self.i2c, SCD4X_I2C_ADDRESS, command).map_err(Error::I2c)?;
+        i2c::write_command_u16(&mut self.i2c, SCD4X_I2C_ADDRESS, command).map_err(Error::I2c)?;
         self.delay.delay_ms(delay);
         Ok(())
     }

@@ -5,7 +5,7 @@ use linux_embedded_hal as hal;
 use log::{debug, info, error};
 
 use structopt::StructOpt;
-use humantime::{Duration as HumanDuration};
+use humantime::Duration as HumanDuration;
 use simplelog::{TermLogger, LevelFilter};
 
 use scd4x::{Scd4x, Error};

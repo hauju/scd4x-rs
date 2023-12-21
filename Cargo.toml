@@ -10,6 +10,7 @@ keywords = ["scd40", "scd41", "sensirion", "driver", "embedded-hal-driver"]
 categories = ["embedded", "no-std"]
 readme = "README.md"
 edition = "2018"
+default-run = "scd4x-util"
 
 [features]
 scd41 = []
@@ -36,5 +37,5 @@ embedded-hal-mock = "0.8"
 
 [[bin]]
 name = "scd4x-util"
-path = "src/main.rs"
+path = "bin/main.rs"
 required-features = ["util"]

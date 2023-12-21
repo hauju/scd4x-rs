@@ -203,11 +203,11 @@ where
         Ok(())
     }
 
-    /// On-demand measurement of CO₂ concentration, relative humidity and temperature. 
+    /// On-demand measurement of CO₂ concentration, relative humidity and temperature.
     /// The sensor output is read with the measurement method.
     /// Takes around 5 seconds to complete
     #[cfg(feature = "scd41")]
-    pub fn measure_single_shot(&mut self) -> Result<(), Error<E>>{
+    pub fn measure_single_shot(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::MeasureSingleShot)?;
         Ok(())
     }
@@ -222,18 +222,21 @@ where
     }
 
     /// On-demand measurement of relative humidity and temperature only.
-    pub fn measure_single_shot_rht(&mut self) ->Result<(), Error<E>> {
+    #[cfg(feature = "scd41")]
+    pub fn measure_single_shot_rht(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::MeasureSingleShotRhtOnly)?;
         Ok(())
     }
 
     /// Put the sensor from idle to sleep mode to reduce current consumption.
-    pub fn power_down(&mut self) -> Result<(), Error<E>>{
+    #[cfg(feature = "scd41")]
+    pub fn power_down(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::PowerDown)?;
         Ok(())
     }
 
     /// Wake up sensor from sleep mode to idle mode.
+    #[cfg(feature = "scd41")]
     pub fn wake_up(&mut self) {
         // Sensor does not acknowledge the wake-up call, error is ignored
         self.write_command(Command::WakeUp).ok();
@@ -316,25 +319,25 @@ mod tests {
         assert_eq!(serial, 0xbeefbeefbeef);
     }
 
-     /// Test the measurement function
-     #[test]
-     fn test_measurement() {
-         // Arrange
-         let (cmd, _, _) = Command::ReadMeasurement.as_tuple();
-         let expectations = [
-             Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
-             Transaction::read(
-                 SCD4X_I2C_ADDRESS,
-                 vec![0x03, 0xE8, 0xD4, 0x62, 0x03, 0x5E, 0x80, 0x00, 0xA2],
-             ),
-         ];
-         let mock = I2cMock::new(&expectations);
-         let mut sensor = Scd4x::new(mock, DelayMock);
-         // Act
-         let data = sensor.measurement().unwrap();
-         // Assert
-         assert_eq!(data.co2, 1000_u16);
-         assert_eq!(data.temperature, 22.000198_f32);
-         assert_eq!(data.humidity, 50_f32);
-     }
+    /// Test the measurement function
+    #[test]
+    fn test_measurement() {
+        // Arrange
+        let (cmd, _, _) = Command::ReadMeasurement.as_tuple();
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(
+                SCD4X_I2C_ADDRESS,
+                vec![0x03, 0xE8, 0xD4, 0x62, 0x03, 0x5E, 0x80, 0x00, 0xA2],
+            ),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+        // Act
+        let data = sensor.measurement().unwrap();
+        // Assert
+        assert_eq!(data.co2, 1000_u16);
+        assert_eq!(data.temperature, 22.000198_f32);
+        assert_eq!(data.humidity, 50_f32);
+    }
 }

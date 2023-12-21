@@ -51,10 +51,13 @@ pub enum Command {
     #[cfg(feature = "scd41")]
     MeasureSingleShotNonBlocking,
     /// On-demand measurement of CO2 concentration, relative humidity and temperature.
+    #[cfg(feature = "scd41")]
     MeasureSingleShotRhtOnly,
     /// Put the sensor from idle to sleep mode to reduce current consumption.
+    #[cfg(feature = "scd41")]
     PowerDown,
     /// Wake up sensor from sleep mode to idle mode.
+    #[cfg(feature = "scd41")]
     WakeUp,
 }
 
@@ -84,8 +87,11 @@ impl Command {
             Self::MeasureSingleShot => (0x219D, 5000, false),
             #[cfg(feature = "scd41")]
             Self::MeasureSingleShotNonBlocking => (0x219D, 1, false),
+            #[cfg(feature = "scd41")]
             Self::MeasureSingleShotRhtOnly => (0x2196, 50, false),
+            #[cfg(feature = "scd41")]
             Self::PowerDown => (0x36E0, 1, false),
+            #[cfg(feature = "scd41")]
             Self::WakeUp => (0x36F6, 20, false),
         }
     }

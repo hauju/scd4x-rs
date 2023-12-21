@@ -60,6 +60,7 @@ fn main() -> Result<(), Error<LinuxI2CError>> {
 
     debug!("Initalising sensor");
 
+    #[cfg(feature = "scd41")]
     sensor.wake_up();
     sensor.stop_periodic_measurement()?;
     sensor.reinit()?;

@@ -205,9 +205,19 @@ where
 
     /// On-demand measurement of CO₂ concentration, relative humidity and temperature.
     /// The sensor output is read with the measurement method.
+    /// Takes around 5 seconds to complete
     #[cfg(feature = "scd41")]
     pub fn measure_single_shot(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::MeasureSingleShot)?;
+        Ok(())
+    }
+
+    /// On-demand measurement of CO₂ concentration, relative humidity and temperature.
+    /// The sensor output is read with the measurement method.
+    /// Completes immediately, but the measurement can only be read after 5 seconds.
+    #[cfg(feature = "scd41")]
+    pub fn measure_single_shot_non_blocking(&mut self) -> Result<(), Error<E>> {
+        self.write_command(Command::MeasureSingleShotNonBlocking)?;
         Ok(())
     }
 

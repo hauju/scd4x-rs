@@ -47,6 +47,9 @@ pub enum Command {
     /// Allows on-demand measurements
     #[cfg(feature = "scd41")]
     MeasureSingleShot,
+    /// Allows on-demand, non-blocking measurements
+    #[cfg(feature = "scd41")]
+    MeasureSingleShotNonBlocking,
     /// On-demand measurement of CO2 concentration, relative humidity and temperature.
     #[cfg(feature = "scd41")]
     MeasureSingleShotRhtOnly,
@@ -82,6 +85,8 @@ impl Command {
             Self::Reinit => (0x3646, 20, false),
             #[cfg(feature = "scd41")]
             Self::MeasureSingleShot => (0x219D, 5000, false),
+            #[cfg(feature = "scd41")]
+            Self::MeasureSingleShotNonBlocking => (0x219D, 1, false),
             #[cfg(feature = "scd41")]
             Self::MeasureSingleShotRhtOnly => (0x2196, 50, false),
             #[cfg(feature = "scd41")]

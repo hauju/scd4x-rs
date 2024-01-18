@@ -1,6 +1,6 @@
-use embedded_hal::blocking::delay::DelayMs;
-use hal::{Delay, I2cdev};
-use linux_embedded_hal as hal;
+
+use embedded_hal::delay::DelayNs;
+use linux_embedded_hal::{Delay, I2cdev};
 
 use scd4x::Scd4x;
 
@@ -19,7 +19,7 @@ fn main() {
     sensor.start_periodic_measurement().unwrap();
     println!("Waiting for first measurement... (5 sec)");
     loop {
-        hal::Delay.delay_ms(5000u16);
+        Delay.delay_ms(5000);
 
         let data = sensor.measurement().unwrap();
 

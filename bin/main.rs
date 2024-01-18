@@ -1,6 +1,6 @@
-use embedded_hal::blocking::delay::DelayMs;
-use hal::{Delay, I2cdev, i2cdev::linux::LinuxI2CError};
-use linux_embedded_hal as hal;
+
+use embedded_hal::delay::DelayNs;
+use linux_embedded_hal::{Delay, I2cdev, i2cdev::linux::LinuxI2CError};
 
 use log::{debug, info, error};
 
@@ -35,7 +35,6 @@ pub struct Options {
 
 
 fn main() -> Result<(), Error<LinuxI2CError>> {
-
     // Load options
     let opts = Options::from_args();
 
@@ -62,19 +61,19 @@ fn main() -> Result<(), Error<LinuxI2CError>> {
 
     #[cfg(feature = "scd41")]
     sensor.wake_up();
-    sensor.stop_periodic_measurement()?;
-    sensor.reinit()?;
+    sensor.stop_periodic_measurement().unwrap();
+    sensor.reinit().unwrap();
 
-    let serial = sensor.serial_number()?;
+    let serial = sensor.serial_number().unwrap();
     info!("Serial: {:#04x}", serial);
 
     debug!("Starting periodic measurement");
-    sensor.start_periodic_measurement()?;
+    sensor.start_periodic_measurement().unwrap();
 
     debug!("Waiting for first measurement... (5 sec)");
 
     loop {
-        hal::Delay.delay_ms(5000u16);
+        Delay.delay_ms(5000);
 
         debug!("Waiting for data ready");
         loop {

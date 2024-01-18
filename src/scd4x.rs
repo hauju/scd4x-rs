@@ -1,11 +1,10 @@
-use embedded_hal as hal;
-use hal::blocking::delay::DelayMs;
-use hal::blocking::i2c::{Read, Write, WriteRead};
 
 use crate::commands::Command;
 use crate::error::Error;
 use crate::types::{RawSensorData, SensorData};
-use sensirion_i2c::{crc8, i2c};
+use sensirion_i2c::crc8;
+use embedded_hal::delay::DelayNs;
+use embedded_hal::i2c::I2c;
 
 const SCD4X_I2C_ADDRESS: u8 = 0x62;
 
@@ -17,10 +16,10 @@ pub struct Scd4x<I2C, D> {
     is_running: bool,
 }
 
-impl<I2C, D, E> Scd4x<I2C, D>
+impl<I2C, D> Scd4x<I2C, D>
 where
-    I2C: Read<Error = E> + Write<Error = E> + WriteRead<Error = E>,
-    D: DelayMs<u32>,
+    I2C: I2c,
+    D: DelayNs,
 {
     pub fn new(i2c: I2C, delay: D) -> Self {
         Scd4x {
@@ -32,7 +31,7 @@ where
 
     /// Start periodic measurement, signal update interval is 5 seconds.
     /// This command is only available in idle mode.
-    pub fn start_periodic_measurement(&mut self) -> Result<(), Error<E>> {
+    pub fn start_periodic_measurement(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::StartPeriodicMeasurement)?;
         self.is_running = true;
         Ok(())
@@ -40,14 +39,14 @@ where
 
     /// Stop periodic measurement and return to idle mode for sensor configuration or to safe energy.
     /// This command is only available in measurement mode.
-    pub fn stop_periodic_measurement(&mut self) -> Result<(), Error<E>> {
+    pub fn stop_periodic_measurement(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::StopPeriodicMeasurement)?;
         self.is_running = false;
         Ok(())
     }
 
     /// Read raw sensor data
-    pub fn sensor_output(&mut self) -> Result<RawSensorData, Error<E>> {
+    pub fn sensor_output(&mut self) -> Result<RawSensorData, Error<I2C::Error>> {
         let mut buf = [0; 9];
         self.delayed_read_cmd(Command::ReadMeasurement, &mut buf)?;
 
@@ -63,7 +62,7 @@ where
     }
 
     /// Read converted sensor data
-    pub fn measurement(&mut self) -> Result<SensorData, Error<E>> {
+    pub fn measurement(&mut self) -> Result<SensorData, Error<I2C::Error>> {
         let mut buf = [0; 9];
         self.delayed_read_cmd(Command::ReadMeasurement, &mut buf)?;
 
@@ -80,7 +79,7 @@ where
     }
 
     /// Get sensor temperature offset
-    pub fn temperature_offset(&mut self) -> Result<f32, Error<E>> {
+    pub fn temperature_offset(&mut self) -> Result<f32, Error<I2C::Error>> {
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
 
@@ -90,14 +89,14 @@ where
     }
 
     /// Set sensor temperature offset
-    pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
+    pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<I2C::Error>> {
         let t_offset = (offset * 65536.0 / 175.0) as i16;
         self.write_command_with_data(Command::SetTemperatureOffset, t_offset as u16)?;
         Ok(())
     }
 
     /// Get sensor altitude in meters above sea level.
-    pub fn altitude(&mut self) -> Result<u16, Error<E>> {
+    pub fn altitude(&mut self) -> Result<u16, Error<I2C::Error>> {
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::GetSensorAltitude, &mut buf)?;
         let altitude = u16::from_be_bytes([buf[0], buf[1]]);
@@ -105,19 +104,19 @@ where
     }
 
     /// Set sensor altitude in meters above sea level.
-    pub fn set_altitude(&mut self, altitude: u16) -> Result<(), Error<E>> {
+    pub fn set_altitude(&mut self, altitude: u16) -> Result<(), Error<I2C::Error>> {
         self.write_command_with_data(Command::SetSensorAltitude, altitude)?;
         Ok(())
     }
 
     /// Set ambient pressure to enable continious pressure compensation
-    pub fn set_ambient_pressure(&mut self, pressure_hpa: u16) -> Result<(), Error<E>> {
+    pub fn set_ambient_pressure(&mut self, pressure_hpa: u16) -> Result<(), Error<I2C::Error>> {
         self.write_command_with_data(Command::SetAmbientPressure, pressure_hpa)?;
         Ok(())
     }
 
     /// Perform forced recalibration
-    pub fn forced_recalibration(&mut self, target_co2_concentration: u16) -> Result<u16, Error<E>> {
+    pub fn forced_recalibration(&mut self, target_co2_concentration: u16) -> Result<u16, Error<I2C::Error>> {
         let frc_correction = self.delayed_read_cmd_with_data(
             Command::PerformForcedRecalibration,
             target_co2_concentration,
@@ -132,7 +131,7 @@ where
     }
 
     /// Get the status of automatic self-calibration
-    pub fn automatic_self_calibration(&mut self) -> Result<bool, Error<E>> {
+    pub fn automatic_self_calibration(&mut self) -> Result<bool, Error<I2C::Error>> {
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::GetAutomaticSelfCalibrationEnabled, &mut buf)?;
         let status = u16::from_be_bytes([buf[0], buf[1]]) != 0;
@@ -140,19 +139,19 @@ where
     }
 
     /// Enable or disable automatic self-calibration
-    pub fn set_automatic_self_calibration(&mut self, enabled: bool) -> Result<(), Error<E>> {
+    pub fn set_automatic_self_calibration(&mut self, enabled: bool) -> Result<(), Error<I2C::Error>> {
         self.write_command_with_data(Command::SetAutomaticSelfCalibrationEnabled, enabled as u16)?;
         Ok(())
     }
 
     /// Start low power periodic measurements
-    pub fn start_low_power_periodic_measurements(&mut self) -> Result<(), Error<E>> {
+    pub fn start_low_power_periodic_measurements(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::StartLowPowerPeriodicMeasurement)?;
         Ok(())
     }
 
     /// Check whether new measurement data is available for read-out.
-    pub fn data_ready_status(&mut self) -> Result<bool, Error<E>> {
+    pub fn data_ready_status(&mut self) -> Result<bool, Error<I2C::Error>> {
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::GetDataReadyStatus, &mut buf)?;
         let status = u16::from_be_bytes([buf[0], buf[1]]);
@@ -163,14 +162,14 @@ where
     }
 
     /// Save settings to non-volatile memory
-    pub fn persist_settings(&mut self) -> Result<(), Error<E>> {
+    pub fn persist_settings(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::PersistSettings)?;
         Ok(())
     }
 
     /// Get 48-bit serial number
-    pub fn serial_number(&mut self) -> Result<u64, Error<E>> {
-        let mut buf = [0; 9];
+    pub fn serial_number(&mut self) -> Result<u64, Error<I2C::Error>> {
+        let mut buf: [u8; 9] = [0; 9];
         self.delayed_read_cmd(Command::GetSerialNumber, &mut buf)?;
         let serial = u64::from(buf[0]) << 40
             | u64::from(buf[1]) << 32
@@ -183,7 +182,7 @@ where
     }
 
     ///  End-of-line test to confirm sensor functionality.
-    pub fn self_test_is_ok(&mut self) -> Result<bool, Error<E>> {
+    pub fn self_test_is_ok(&mut self) -> Result<bool, Error<I2C::Error>> {
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::PerformSelfTest, &mut buf)?;
 
@@ -192,13 +191,13 @@ where
     }
 
     /// Initiates the reset of all configurations stored in the EEPROM and erases the FRC and ASC algorithm history.
-    pub fn factory_reset(&mut self) -> Result<(), Error<E>> {
+    pub fn factory_reset(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::PerformFactoryReset)?;
         Ok(())
     }
 
     /// The reinit command reinitializes the sensor by reloading user settings from EEPROM.
-    pub fn reinit(&mut self) -> Result<(), Error<E>> {
+    pub fn reinit(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::Reinit)?;
         Ok(())
     }
@@ -207,7 +206,7 @@ where
     /// The sensor output is read with the measurement method.
     /// Takes around 5 seconds to complete
     #[cfg(feature = "scd41")]
-    pub fn measure_single_shot(&mut self) -> Result<(), Error<E>> {
+    pub fn measure_single_shot(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::MeasureSingleShot)?;
         Ok(())
     }
@@ -216,21 +215,21 @@ where
     /// The sensor output is read with the measurement method.
     /// Completes immediately, but the measurement can only be read after 5 seconds.
     #[cfg(feature = "scd41")]
-    pub fn measure_single_shot_non_blocking(&mut self) -> Result<(), Error<E>> {
+    pub fn measure_single_shot_non_blocking(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::MeasureSingleShotNonBlocking)?;
         Ok(())
     }
 
     /// On-demand measurement of relative humidity and temperature only.
     #[cfg(feature = "scd41")]
-    pub fn measure_single_shot_rht(&mut self) -> Result<(), Error<E>> {
+    pub fn measure_single_shot_rht(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::MeasureSingleShotRhtOnly)?;
         Ok(())
     }
 
     /// Put the sensor from idle to sleep mode to reduce current consumption.
     #[cfg(feature = "scd41")]
-    pub fn power_down(&mut self) -> Result<(), Error<E>> {
+    pub fn power_down(&mut self) -> Result<(), Error<I2C::Error>> {
         self.write_command(Command::PowerDown)?;
         Ok(())
     }
@@ -243,34 +242,34 @@ where
     }
 
     /// Command for reading values from the sensor
-    fn delayed_read_cmd(&mut self, cmd: Command, data: &mut [u8]) -> Result<(), Error<E>> {
+    fn delayed_read_cmd(&mut self, cmd: Command, data: &mut [u8]) -> Result<(), Error<I2C::Error>> {
         self.write_command(cmd)?;
-        i2c::read_words_with_crc(&mut self.i2c, SCD4X_I2C_ADDRESS, data)?;
+        self.i2c.read(SCD4X_I2C_ADDRESS, data).map_err(Error::I2c)?;
         Ok(())
     }
 
     /// Send command with parameter, takes response
-    fn delayed_read_cmd_with_data(&mut self, cmd: Command, data: u16) -> Result<u16, Error<E>> {
+    fn delayed_read_cmd_with_data(&mut self, cmd: Command, data: u16) -> Result<u16, Error<I2C::Error>> {
         self.write_command_with_data(cmd, data)?;
         let mut buf = [0; 3];
-        i2c::read_words_with_crc(&mut self.i2c, SCD4X_I2C_ADDRESS, &mut buf)?;
-
+        self.i2c.read(SCD4X_I2C_ADDRESS, &mut buf).map_err(Error::I2c)?;
         Ok(u16::from_be_bytes([buf[0], buf[1]]))
     }
 
     /// Writes commands without additional arguments.
-    fn write_command(&mut self, cmd: Command) -> Result<(), Error<E>> {
+    fn write_command(&mut self, cmd: Command) -> Result<(), Error<I2C::Error>> {
         let (command, delay, allowed_if_running) = cmd.as_tuple();
         if !allowed_if_running && self.is_running {
             return Err(Error::NotAllowed);
         }
-        i2c::write_command(&mut self.i2c, SCD4X_I2C_ADDRESS, command).map_err(Error::I2c)?;
+        let cmd = command.to_be_bytes();
+        self.i2c.write(SCD4X_I2C_ADDRESS, &cmd).map_err(Error::I2c)?;
         self.delay.delay_ms(delay);
         Ok(())
     }
 
     /// Sets sensor internal parameter
-    fn write_command_with_data(&mut self, cmd: Command, data: u16) -> Result<(), Error<E>> {
+    fn write_command_with_data(&mut self, cmd: Command, data: u16) -> Result<(), Error<I2C::Error>> {
         let (command, delay, allowed_if_running) = cmd.as_tuple();
         if !allowed_if_running && self.is_running {
             return Err(Error::NotAllowed);
@@ -283,9 +282,7 @@ where
         buf[2..4].copy_from_slice(&d);
         buf[4] = crc8::calculate(&d);
 
-        self.i2c
-            .write(SCD4X_I2C_ADDRESS, &buf)
-            .map_err(Error::I2c)?;
+        self.i2c.write(SCD4X_I2C_ADDRESS, &buf).map_err(Error::I2c)?;
         self.delay.delay_ms(delay);
         Ok(())
     }
@@ -293,10 +290,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use embedded_hal_mock as hal;
+    use embedded_hal_mock::eh1::i2c::Transaction;
+    use embedded_hal_mock::eh1::delay::NoopDelay as DelayMock;
+    use embedded_hal_mock::eh1::i2c::Mock as I2cMock;
 
-    use self::hal::delay::MockNoop as DelayMock;
-    use self::hal::i2c::{Mock as I2cMock, Transaction};
     use super::*;
 
     /// Test the get_serial_number function
@@ -317,6 +314,7 @@ mod tests {
         let serial = sensor.serial_number().unwrap();
         // Assert
         assert_eq!(serial, 0xbeefbeefbeef);
+        sensor.i2c.done();
     }
 
     /// Test the measurement function
@@ -339,5 +337,6 @@ mod tests {
         assert_eq!(data.co2, 1000_u16);
         assert_eq!(data.temperature, 22.000198_f32);
         assert_eq!(data.humidity, 50_f32);
+        sensor.i2c.done();
     }
 }

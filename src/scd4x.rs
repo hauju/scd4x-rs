@@ -1,6 +1,6 @@
 use embedded_hal as hal;
-use hal::blocking::delay::DelayMs;
-use hal::blocking::i2c::{Read, Write, WriteRead};
+use hal::delay::DelayNs;
+use hal::i2c::I2c;
 
 use crate::commands::Command;
 use crate::error::Error;
@@ -19,8 +19,8 @@ pub struct Scd4x<I2C, D> {
 
 impl<I2C, D, E> Scd4x<I2C, D>
 where
-    I2C: Read<Error = E> + Write<Error = E> + WriteRead<Error = E>,
-    D: DelayMs<u32>,
+    I2C: I2c<Error = E>,
+    D: DelayNs,
 {
     pub fn new(i2c: I2C, delay: D) -> Self {
         Scd4x {
@@ -28,6 +28,10 @@ where
             delay,
             is_running: false,
         }
+    }
+
+    pub fn destroy(self) -> I2C {
+        self.i2c
     }
 
     /// Start periodic measurement, signal update interval is 5 seconds.
@@ -264,7 +268,7 @@ where
         if !allowed_if_running && self.is_running {
             return Err(Error::NotAllowed);
         }
-        i2c::write_command(&mut self.i2c, SCD4X_I2C_ADDRESS, command).map_err(Error::I2c)?;
+        i2c::write_command_u16(&mut self.i2c, SCD4X_I2C_ADDRESS, command).map_err(Error::I2c)?;
         self.delay.delay_ms(delay);
         Ok(())
     }
@@ -293,9 +297,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use embedded_hal_mock as hal;
+    use embedded_hal_mock::eh1 as hal;
 
-    use self::hal::delay::MockNoop as DelayMock;
+    use self::hal::delay::NoopDelay as DelayMock;
     use self::hal::i2c::{Mock as I2cMock, Transaction};
     use super::*;
 
@@ -317,6 +321,9 @@ mod tests {
         let serial = sensor.serial_number().unwrap();
         // Assert
         assert_eq!(serial, 0xbeefbeefbeef);
+
+        let mut mock = sensor.destroy();
+        mock.done();
     }
 
     /// Test the measurement function
@@ -339,5 +346,8 @@ mod tests {
         assert_eq!(data.co2, 1000_u16);
         assert_eq!(data.temperature, 22.000198_f32);
         assert_eq!(data.humidity, 50_f32);
+
+        let mut mock = sensor.destroy();
+        mock.done();
     }
 }

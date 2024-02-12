@@ -1,31 +1,34 @@
-use embedded_hal::blocking::delay::DelayMs;
-use hal::{Delay, I2cdev, i2cdev::linux::LinuxI2CError};
+use embedded_hal::delay::DelayNs;
+use hal::{Delay, I2CError, I2cdev};
 use linux_embedded_hal as hal;
 
-use log::{debug, info, error};
+use log::{debug, error, info};
 
-use structopt::StructOpt;
 use humantime::Duration as HumanDuration;
-use simplelog::{TermLogger, LevelFilter};
+use simplelog::{LevelFilter, TermLogger};
+use structopt::StructOpt;
 
-use scd4x::{Scd4x, Error};
-
+use scd4x::{Error, Scd4x};
 
 #[derive(StructOpt)]
 #[structopt(name = "scd4x-util")]
 /// A Command Line Interface (CLI) for interacting with a sensiron SCD4x environmental sensor via Linux I2C
 pub struct Options {
-
     /// Specify the i2c interface to use to connect to the scd30 device
-    #[structopt(short="d", long = "i2c", default_value = "/dev/i2c-1", env = "SCD4x_I2C")]
+    #[structopt(
+        short = "d",
+        long = "i2c",
+        default_value = "/dev/i2c-1",
+        env = "SCD4x_I2C"
+    )]
     i2c: String,
 
     /// Delay between sensor poll operations
-    #[structopt(long = "poll-delay", default_value="100ms")]
+    #[structopt(long = "poll-delay", default_value = "100ms")]
     pub poll_delay: HumanDuration,
 
     /// Number of allowed I2C errors (per measurement attempt) prior to exiting
-    #[structopt(long = "allowed-errors", default_value="3")]
+    #[structopt(long = "allowed-errors", default_value = "3")]
     pub allowed_errors: usize,
 
     /// Enable verbose logging
@@ -33,17 +36,18 @@ pub struct Options {
     level: LevelFilter,
 }
 
-
-fn main() -> Result<(), Error<LinuxI2CError>> {
-
+fn main() -> Result<(), Error<I2CError>> {
     // Load options
     let opts = Options::from_args();
 
     // Setup logging
-    TermLogger::init(opts.level, 
+    TermLogger::init(
+        opts.level,
         simplelog::Config::default(),
         simplelog::TerminalMode::Mixed,
-        simplelog::ColorChoice::Auto).unwrap();
+        simplelog::ColorChoice::Auto,
+    )
+    .unwrap();
 
     debug!("Connecting to I2C device");
     let i2c = match I2cdev::new(&opts.i2c) {
@@ -56,7 +60,6 @@ fn main() -> Result<(), Error<LinuxI2CError>> {
 
     debug!("Connecting to sensor");
     let mut sensor = Scd4x::new(i2c, Delay);
-
 
     debug!("Initalising sensor");
 
@@ -74,7 +77,7 @@ fn main() -> Result<(), Error<LinuxI2CError>> {
     debug!("Waiting for first measurement... (5 sec)");
 
     loop {
-        hal::Delay.delay_ms(5000u16);
+        hal::Delay.delay_ms(5000u32);
 
         debug!("Waiting for data ready");
         loop {
@@ -84,7 +87,7 @@ fn main() -> Result<(), Error<LinuxI2CError>> {
                 Err(e) => {
                     error!("Failed to poll for data ready: {:?}", e);
                     std::process::exit(-2);
-                },
+                }
             }
         }
 
@@ -94,7 +97,7 @@ fn main() -> Result<(), Error<LinuxI2CError>> {
             Err(e) => {
                 error!("Failed to read measurement: {:?}", e);
                 std::process::exit(-3);
-            },
+            }
         };
 
         println!(

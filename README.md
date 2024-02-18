@@ -10,6 +10,11 @@ Further information: [Datasheet CO2 Sensor SCD4x](https://www.sensirion.com/file
 
 ## Usage
 
+Run scd4x-util to read the serial number and the measurement output.
+```bash
+cargo run --features="util"
+```
+
 See an example using `linux-embedded-hal` in `examples/linux.rs`.
 ```bash
 cargo run --example linux

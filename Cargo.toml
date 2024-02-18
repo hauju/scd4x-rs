@@ -15,7 +15,7 @@ default-run = "scd4x-util"
 [features]
 scd41 = []
 util = [ "structopt", "simplelog", "humantime", "linux-embedded-hal", "anyhow" ]
-default = [ "util" ]
+default = []
 
 [dependencies]
 sensirion-i2c = "0.1"

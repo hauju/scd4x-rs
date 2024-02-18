@@ -1,5 +1,5 @@
 use embedded_hal as hal;
-use hal::blocking::i2c::{Read, Write};
+use hal::i2c::I2c;
 use sensirion_i2c::i2c;
 
 /// SCD4X errors
@@ -20,15 +20,14 @@ pub enum Error<E> {
     NotAllowed,
     #[cfg_attr(feature = "thiserror", error("Internal"))]
     /// Internal fail
-    Internal
+    Internal,
 }
 
-impl<E, I2cWrite, I2cRead> From<i2c::Error<I2cWrite, I2cRead>> for Error<E>
+impl<E, I2C> From<i2c::Error<I2C>> for Error<E>
 where
-    I2cWrite: Write<Error = E>,
-    I2cRead: Read<Error = E>,
+    I2C: I2c<Error = E>,
 {
-    fn from(err: i2c::Error<I2cWrite, I2cRead>) -> Self {
+    fn from(err: i2c::Error<I2C>) -> Self {
         match err {
             i2c::Error::Crc => Error::Crc,
             i2c::Error::I2cWrite(e) => Error::I2c(e),

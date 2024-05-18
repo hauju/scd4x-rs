@@ -15,11 +15,13 @@ default-run = "scd4x-util"
 [features]
 scd41 = []
 util = [ "structopt", "simplelog", "humantime", "linux-embedded-hal", "anyhow" ]
+embedded-hal-async = [ "dep:embedded-hal-async", "sensirion-i2c/embedded-hal-async"]
 default = []
 
 [dependencies]
 sensirion-i2c = "0.3.0"
 embedded-hal = "1.0.0"
+embedded-hal-async = { optional = true }
 
 log = { version = "0.4.16", default_features = false }
 defmt = { version = "0.3.0", optional = true }
@@ -39,3 +41,6 @@ embedded-hal-mock = "0.10.0"
 name = "scd4x-util"
 path = "bin/main.rs"
 required-features = ["util"]
+
+[patch.crates-io]
+sensirion-i2c = { git = "https://github.com/hawkw/sensirion-i2c-rs", rev = "6dde55bec555b2070414c241a4d0618fdf4e2346" }

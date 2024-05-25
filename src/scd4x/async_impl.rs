@@ -32,7 +32,7 @@ where
 
     /// Start periodic measurement, signal update interval is 5 seconds.
     /// This command is only available in idle mode.
-    pub async fn start_periodic_measurement_async(&mut self) -> Result<(), Error<E>> {
+    pub async fn start_periodic_measurement(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::StartPeriodicMeasurement)
             .await?;
         self.is_running = true;
@@ -41,7 +41,7 @@ where
 
     /// Stop periodic measurement and return to idle mode for sensor configuration or to safe energy.
     /// This command is only available in measurement mode.
-    pub async fn stop_periodic_measurement_async(&mut self) -> Result<(), Error<E>> {
+    pub async fn stop_periodic_measurement(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::StopPeriodicMeasurement).await?;
         self.is_running = false;
         Ok(())

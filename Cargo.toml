@@ -43,4 +43,4 @@ path = "bin/main.rs"
 required-features = ["util"]
 
 [patch.crates-io]
-sensirion-i2c = { git = "https://github.com/hawkw/sensirion-i2c-rs", rev = "6dde55bec555b2070414c241a4d0618fdf4e2346" }
+sensirion-i2c = { git = "https://github.com/sensirion/sensirion-i2c-rs", rev = "f7b9f3a81b777bc6e6b2f0acb4c1ef9c57dfa06d" }

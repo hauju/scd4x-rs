@@ -7,13 +7,13 @@ use sensirion_i2c::i2c_async;
 ///
 /// Use related methods to take measurements.
 #[derive(Debug, Default)]
-pub struct AsyncScd4x<I2C, D> {
+pub struct Scd4xAsync<I2C, D> {
     i2c: I2C,
     delay: D,
     is_running: bool,
 }
 
-impl<I2C, D, E> AsyncScd4x<I2C, D>
+impl<I2C, D, E> Scd4xAsync<I2C, D>
 where
     I2C: I2c<Error = E>,
     D: DelayNs,

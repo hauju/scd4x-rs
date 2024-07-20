@@ -12,7 +12,7 @@ const SCD4X_I2C_ADDRESS: u8 = 0x62;
 #[cfg(feature = "embedded-hal-async")]
 mod async_impl;
 #[cfg(feature = "embedded-hal-async")]
-pub use async_impl::AsyncScd4x;
+pub use async_impl::Scd4xAsync;
 
 /// SCD4X sensor instance. Use related methods to take measurements.
 #[derive(Debug, Default)]

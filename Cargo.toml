@@ -19,7 +19,7 @@ embedded-hal-async = [ "dep:embedded-hal-async", "sensirion-i2c/embedded-hal-asy
 default = []
 
 [dependencies]
-sensirion-i2c = "0.3.0"
+sensirion-i2c = "0.4.0"
 embedded-hal = "1.0.0"
 embedded-hal-async = { optional = true }
 
@@ -41,6 +41,3 @@ embedded-hal-mock = "0.10.0"
 name = "scd4x-util"
 path = "bin/main.rs"
 required-features = ["util"]
-
-[patch.crates-io]
-sensirion-i2c = { git = "https://github.com/sensirion/sensirion-i2c-rs", rev = "f7b9f3a81b777bc6e6b2f0acb4c1ef9c57dfa06d" }

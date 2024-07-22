@@ -9,6 +9,11 @@ use sensirion_i2c::{crc8, i2c};
 
 const SCD4X_I2C_ADDRESS: u8 = 0x62;
 
+#[cfg(feature = "embedded-hal-async")]
+mod async_impl;
+#[cfg(feature = "embedded-hal-async")]
+pub use async_impl::Scd4xAsync;
+
 /// SCD4X sensor instance. Use related methods to take measurements.
 #[derive(Debug, Default)]
 pub struct Scd4x<I2C, D> {
@@ -55,32 +60,13 @@ where
         let mut buf = [0; 9];
         self.delayed_read_cmd(Command::ReadMeasurement, &mut buf)?;
 
-        let co2 = u16::from_be_bytes([buf[0], buf[1]]);
-        let temperature = u16::from_be_bytes([buf[3], buf[4]]);
-        let humidity = u16::from_be_bytes([buf[6], buf[7]]);
-
-        Ok(RawSensorData {
-            co2,
-            temperature,
-            humidity,
-        })
+        Ok(RawSensorData::from_bytes(buf))
     }
 
     /// Read converted sensor data
     pub fn measurement(&mut self) -> Result<SensorData, Error<E>> {
-        let mut buf = [0; 9];
-        self.delayed_read_cmd(Command::ReadMeasurement, &mut buf)?;
-
-        // buf[2], buf[5], buf[8] is CRC bytes and not used
-        let co2 = u16::from_be_bytes([buf[0], buf[1]]);
-        let temperature = u16::from_be_bytes([buf[3], buf[4]]);
-        let humidity = u16::from_be_bytes([buf[6], buf[7]]);
-
-        Ok(SensorData {
-            co2,
-            temperature: temperature as f32 * 175_f32 / 65536_f32 - 45_f32,
-            humidity: humidity as f32 * 100_f32 / 65536_f32,
-        })
+        let raw = self.sensor_output()?;
+        Ok(SensorData::from_raw(raw))
     }
 
     /// Get sensor temperature offset
@@ -88,15 +74,13 @@ where
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
 
-        let raw_offset = u16::from_be_bytes([buf[0], buf[1]]);
-        let offset = raw_offset as f32 * 175.0 / 65536.0;
-        Ok(offset)
+        Ok(temp_offset_from_bytes(buf))
     }
 
     /// Set sensor temperature offset
     pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
-        let t_offset = (offset * 65536.0 / 175.0) as i16;
-        self.write_command_with_data(Command::SetTemperatureOffset, t_offset as u16)?;
+        let t_offset = temp_offset_to_u16(offset);
+        self.write_command_with_data(Command::SetTemperatureOffset, t_offset)?;
         Ok(())
     }
 
@@ -126,13 +110,7 @@ where
             Command::PerformForcedRecalibration,
             target_co2_concentration,
         )?;
-        if frc_correction == u16::MAX {
-            return Err(Error::Internal);
-        }
-        match frc_correction.checked_sub(0x8000) {
-            Some(concentration) => Ok(concentration),
-            None => Err(Error::Internal),
-        }
+        check_frc_correction(frc_correction)
     }
 
     /// Get the status of automatic self-calibration
@@ -176,14 +154,8 @@ where
     pub fn serial_number(&mut self) -> Result<u64, Error<E>> {
         let mut buf = [0; 9];
         self.delayed_read_cmd(Command::GetSerialNumber, &mut buf)?;
-        let serial = u64::from(buf[0]) << 40
-            | u64::from(buf[1]) << 32
-            | u64::from(buf[3]) << 24
-            | u64::from(buf[4]) << 16
-            | u64::from(buf[6]) << 8
-            | u64::from(buf[7]);
 
-        Ok(serial)
+        Ok(serial_number_from_bytes(buf))
     }
 
     ///  End-of-line test to confirm sensor functionality.
@@ -279,19 +251,81 @@ where
         if !allowed_if_running && self.is_running {
             return Err(Error::NotAllowed);
         }
-        let c = command.to_be_bytes();
-        let d = data.to_be_bytes();
-
-        let mut buf = [0; 5];
-        buf[0..2].copy_from_slice(&c);
-        buf[2..4].copy_from_slice(&d);
-        buf[4] = crc8::calculate(&d);
+        let buf = encode_cmd_with_data(command, data);
 
         self.i2c
             .write(SCD4X_I2C_ADDRESS, &buf)
             .map_err(Error::I2c)?;
         self.delay.delay_ms(delay);
         Ok(())
+    }
+}
+
+impl RawSensorData {
+    fn from_bytes(buf: [u8; 9]) -> Self {
+        // buf[2], buf[5], buf[8] is CRC bytes and not used
+        let co2 = u16::from_be_bytes([buf[0], buf[1]]);
+        let temperature = u16::from_be_bytes([buf[3], buf[4]]);
+        let humidity = u16::from_be_bytes([buf[6], buf[7]]);
+        Self {
+            co2,
+            temperature,
+            humidity,
+        }
+    }
+}
+
+impl SensorData {
+    fn from_raw(raw: RawSensorData) -> Self {
+        let RawSensorData {
+            co2,
+            temperature,
+            humidity,
+        } = raw;
+        SensorData {
+            co2,
+            temperature: temperature as f32 * 175_f32 / 65536_f32 - 45_f32,
+            humidity: humidity as f32 * 100_f32 / 65536_f32,
+        }
+    }
+}
+
+fn serial_number_from_bytes(buf: [u8; 9]) -> u64 {
+    u64::from(buf[0]) << 40
+        | u64::from(buf[1]) << 32
+        | u64::from(buf[3]) << 24
+        | u64::from(buf[4]) << 16
+        | u64::from(buf[6]) << 8
+        | u64::from(buf[7])
+}
+
+fn encode_cmd_with_data(command: u16, data: u16) -> [u8; 5] {
+    let c = command.to_be_bytes();
+    let d = data.to_be_bytes();
+
+    let mut buf = [0; 5];
+    buf[0..2].copy_from_slice(&c);
+    buf[2..4].copy_from_slice(&d);
+    buf[4] = crc8::calculate(&d);
+    buf
+}
+
+fn temp_offset_from_bytes(buf: [u8; 3]) -> f32 {
+    let raw_offset = u16::from_be_bytes([buf[0], buf[1]]);
+    raw_offset as f32 * 175.0 / 65536.0
+}
+
+fn temp_offset_to_u16(offset: f32) -> u16 {
+    (offset * 65536.0 / 175.0) as i16 as u16
+}
+
+fn check_frc_correction<E>(frc_correction: u16) -> Result<u16, Error<E>> {
+    if frc_correction == u16::MAX {
+        return Err(Error::Internal);
+    }
+    match frc_correction.checked_sub(0x8000) {
+        Some(concentration) => Ok(concentration),
+        None => Err(Error::Internal),
     }
 }
 

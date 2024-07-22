@@ -1,6 +1,6 @@
 [package]
 name = "scd4x"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Hauke Jung <hauke.jung@outlook.de>"]
 documentation = "https://docs.rs/scd4x"
 repository = "https://github.com/hauju/scd4x-rs.git"
@@ -9,7 +9,7 @@ description = "Rust driver for the Sensirion SCD4x series. Carbon Dioxide / Temp
 keywords = ["scd40", "scd41", "sensirion", "driver", "embedded-hal-driver"]
 categories = ["embedded", "no-std"]
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 default-run = "scd4x-util"
 
 [features]
@@ -18,12 +18,12 @@ util = [ "structopt", "simplelog", "humantime", "linux-embedded-hal", "anyhow" ]
 default = []
 
 [dependencies]
-sensirion-i2c = "0.3.0"
+sensirion-i2c = "0.4.0"
 embedded-hal = "1.0.0"
 
 log = { version = "0.4.16", default_features = false }
 defmt = { version = "0.3.0", optional = true }
-anyhow = { version = "1.0.56", optional = true, default_features = false }
+anyhow = { version = "1.0.56", optional = true, default-features = false }
 
 structopt = { version = "0.3.26", optional = true }
 linux-embedded-hal = { version = "0.4.0", optional = true }
@@ -33,7 +33,7 @@ humantime = { version = "2.1.0", optional = true }
 
 [dev-dependencies]
 linux-embedded-hal = "0.4.0"
-embedded-hal-mock = "0.10.0"
+embedded-hal-mock = "0.11.1"
 
 [[bin]]
 name = "scd4x-util"

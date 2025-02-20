@@ -78,8 +78,8 @@ where
 
         Ok(SensorData {
             co2,
-            temperature: temperature as f32 * 175_f32 / 65536_f32 - 45_f32,
-            humidity: humidity as f32 * 100_f32 / 65536_f32,
+            temperature: (temperature as f32 * 175_f32) / (u16::MAX as f32) - 45_f32,
+            humidity: (humidity as f32 * 100_f32) / (u16::MAX as f32),
         })
     }
 
@@ -89,14 +89,14 @@ where
         self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
 
         let raw_offset = u16::from_be_bytes([buf[0], buf[1]]);
-        let offset = raw_offset as f32 * 175.0 / 65536.0;
+        let offset = (raw_offset as f32 * 175_f32) / (u16::MAX as f32);
         Ok(offset)
     }
 
     /// Set sensor temperature offset
     pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
-        let t_offset = (offset * 65536.0 / 175.0) as i16;
-        self.write_command_with_data(Command::SetTemperatureOffset, t_offset as u16)?;
+        let t_offset = (((offset * (u16::MAX as f32)) / 175_f32) as i32) as u16;
+        self.write_command_with_data(Command::SetTemperatureOffset, t_offset)?;
         Ok(())
     }
 
@@ -114,7 +114,7 @@ where
         Ok(())
     }
 
-    /// Set ambient pressure to enable continious pressure compensation
+    /// Set ambient pressure to enable continuous pressure compensation
     pub fn set_ambient_pressure(&mut self, pressure_hpa: u16) -> Result<(), Error<E>> {
         self.write_command_with_data(Command::SetAmbientPressure, pressure_hpa)?;
         Ok(())

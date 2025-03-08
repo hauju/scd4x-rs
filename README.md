@@ -6,7 +6,7 @@ This library provides an embedded `no_std` driver for the [Sensirion SCD4x serie
 
 The SCD4x is a miniature carbon dioxide sensor. It also measure temperature and relative humidity.
 
-Further information: [Datasheet CO2 Sensor SCD4x](https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/9.5_CO2/Sensirion_CO2_Sensors_SCD4x_Datasheet.pdf)
+Further information: [Datasheet CO2 Sensor SCD4x](https://sensirion.com/media/documents/48C4B7FB/66E05452/CD_DS_SCD4x_Datasheet_D1.pdf)
 
 ## Usage
 

@@ -1,26 +1,66 @@
-name: Continuous Integration and Deployment
+name: Continuous Integration
+
+env:
+  CARGO_TERM_COLOR: always
 
 on:
   push:
   pull_request:
 
 jobs:
-  build:
+  rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check format
+        run: cargo fmt --check
 
-      - name: Install rust
-        uses: actions-rs/toolchain@v1
+  unused-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-machete
+        uses: taiki-e/install-action@v2
         with:
-            profile: minimal
-            toolchain: stable
-            target: armv7-unknown-linux-gnueabihf
-            override: true
-          
+          tool: cargo-machete
+
+      - name: Check for unused dependencies
+        run: cargo machete
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check for clippy warnings
+        run: cargo clippy --all-targets --all-features --color always -- -D warnings
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run tests
+        run: cargo test --verbose
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature-set:
+          - ""
+          - "embedded-hal-async"
+          - "util"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: armv7-unknown-linux-gnueabihf
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --verbose
         
-      - name: Run tests
-        run: cargo test --verbose
+      

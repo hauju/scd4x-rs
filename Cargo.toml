@@ -17,6 +17,8 @@ scd41 = []
 util = [ "dep:structopt", "dep:simplelog", "dep:humantime", "dep:linux-embedded-hal", "dep:anyhow" ]
 embedded-hal-async = [ "dep:embedded-hal-async", "sensirion-i2c/embedded-hal-async"]
 default = []
+thiserror = [ "dep:thiserror", "std" ]
+std = []
 
 [dependencies]
 sensirion-i2c = "0.4.0"

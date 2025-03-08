@@ -1,23 +1,33 @@
-name: Continuous Integration and Deployment
+name: Continuous Integration
+
+env:
+  CARGO_TERM_COLOR: always
 
 on:
   push:
   pull_request:
 
 jobs:
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Check format
+        run: cargo fmt --check
+
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain
         with:
-            profile: minimal
             toolchain: stable
             target: armv7-unknown-linux-gnueabihf
-            override: true
           
       - name: Build
         run: cargo build --release --verbose

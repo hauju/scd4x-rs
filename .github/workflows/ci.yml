@@ -15,9 +15,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: armv7-unknown-linux-gnueabihf
-
       - name: Check format
         run: cargo fmt --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check for clippy warnings
+        run: cargo clippy --all-targets --all-features --color always -- -D warnings
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run tests
+        run: cargo test --verbose
 
   build:
     runs-on: ubuntu-latest
@@ -26,9 +41,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: armv7-unknown-linux-gnueabihf
-          
       - name: Build
         run: cargo build --release --verbose
         
-      - name: Run tests
-        run: cargo test --verbose
+      

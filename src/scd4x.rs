@@ -378,8 +378,8 @@ mod tests {
         let data = sensor.measurement().unwrap();
         // Assert
         assert_eq!(data.co2, 1000_u16);
-        assert_eq!(data.temperature, 22.000198_f32);
-        assert_eq!(data.humidity, 50_f32);
+        assert_eq!(data.temperature, 22.00122_f32);
+        assert_eq!(data.humidity, 50.000763_f32);
 
         let mut mock = sensor.destroy();
         mock.done();

@@ -13,6 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: armv7-unknown-linux-gnueabihf
 
       - name: Check format
         run: cargo fmt --check
@@ -20,14 +22,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Install rust
-        uses: dtolnay/rust-toolchain
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-            toolchain: stable
-            target: armv7-unknown-linux-gnueabihf
+          target: armv7-unknown-linux-gnueabihf
           
       - name: Build
         run: cargo build --release --verbose

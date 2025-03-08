@@ -13,10 +13,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          target: armv7-unknown-linux-gnueabihf
       - name: Check format
         run: cargo fmt --check
+
+  unused-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-machete
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-machete
+
+      - name: Check for unused dependencies
+        run: cargo machete
 
   clippy:
     runs-on: ubuntu-latest
@@ -36,11 +48,18 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature-set:
+          - ""
+          - "embedded-hal-async"
+          - "util"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: armv7-unknown-linux-gnueabihf
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --verbose
         

@@ -14,7 +14,7 @@ default-run = "scd4x-util"
 
 [features]
 scd41 = []
-util = [ "structopt", "simplelog", "humantime", "linux-embedded-hal", "anyhow" ]
+util = [ "dep:structopt", "dep:simplelog", "dep:humantime", "dep:linux-embedded-hal", "dep:anyhow" ]
 embedded-hal-async = [ "dep:embedded-hal-async", "sensirion-i2c/embedded-hal-async"]
 default = []
 

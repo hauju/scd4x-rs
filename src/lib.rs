@@ -20,7 +20,7 @@
 //! ```
 
 #![deny(unsafe_code)]
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 
 /// Log functions for internal use, use `crate::log::*`
 mod log {

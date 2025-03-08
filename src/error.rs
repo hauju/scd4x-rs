@@ -1,5 +1,4 @@
 use embedded_hal as hal;
-use hal::i2c::I2c;
 use sensirion_i2c::i2c;
 
 /// SCD4X errors
@@ -23,9 +22,9 @@ pub enum Error<E> {
     Internal,
 }
 
-impl<E, I2C> From<i2c::Error<I2C>> for Error<E>
+impl<I2C> From<i2c::Error<I2C>> for Error<I2C::Error>
 where
-    I2C: I2c<Error = E>,
+    I2C: hal::i2c::ErrorType,
 {
     fn from(err: i2c::Error<I2C>) -> Self {
         match err {

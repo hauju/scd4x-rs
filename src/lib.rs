@@ -22,17 +22,6 @@
 #![deny(unsafe_code)]
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 
-/// Log functions for internal use, use `crate::log::*`
-mod log {
-    // Default to logging with log
-    #[cfg(not(feature = "defmt"))]
-    pub use log::{debug, error, info, trace, warn};
-
-    // Replace with defmt if enabled
-    #[cfg(feature = "defmt")]
-    pub use defmt::{debug, error, info, trace, warn};
-}
-
 mod scd4x;
 pub use crate::scd4x::Scd4x;
 

@@ -291,11 +291,11 @@ impl SensorData {
 }
 
 fn serial_number_from_bytes(buf: [u8; 9]) -> u64 {
-    u64::from(buf[0]) << 40
-        | u64::from(buf[1]) << 32
-        | u64::from(buf[3]) << 24
-        | u64::from(buf[4]) << 16
-        | u64::from(buf[6]) << 8
+    (u64::from(buf[0]) << 40)
+        | (u64::from(buf[1]) << 32)
+        | (u64::from(buf[3]) << 24)
+        | (u64::from(buf[4]) << 16)
+        | (u64::from(buf[6]) << 8)
         | u64::from(buf[7])
 }
 

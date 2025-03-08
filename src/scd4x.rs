@@ -98,7 +98,7 @@ where
         Ok(())
     }
 
-    /// Set ambient pressure to enable continious pressure compensation
+    /// Set ambient pressure to enable continuous pressure compensation
     pub fn set_ambient_pressure(&mut self, pressure_hpa: u16) -> Result<(), Error<E>> {
         self.write_command_with_data(Command::SetAmbientPressure, pressure_hpa)?;
         Ok(())
@@ -284,8 +284,8 @@ impl SensorData {
         } = raw;
         SensorData {
             co2,
-            temperature: temperature as f32 * 175_f32 / 65536_f32 - 45_f32,
-            humidity: humidity as f32 * 100_f32 / 65536_f32,
+            temperature: (temperature as f32 * 175_f32) / (u16::MAX as f32) - 45_f32,
+            humidity: (humidity as f32 * 100_f32) / (u16::MAX as f32),
         }
     }
 }
@@ -312,11 +312,11 @@ fn encode_cmd_with_data(command: u16, data: u16) -> [u8; 5] {
 
 fn temp_offset_from_bytes(buf: [u8; 3]) -> f32 {
     let raw_offset = u16::from_be_bytes([buf[0], buf[1]]);
-    raw_offset as f32 * 175.0 / 65536.0
+    (raw_offset as f32 * 175_f32) / (u16::MAX as f32)
 }
 
 fn temp_offset_to_u16(offset: f32) -> u16 {
-    (offset * 65536.0 / 175.0) as i16 as u16
+    (((offset * (u16::MAX as f32)) / 175_f32) as i32) as u16
 }
 
 fn check_frc_correction<E>(frc_correction: u16) -> Result<u16, Error<E>> {
@@ -378,8 +378,8 @@ mod tests {
         let data = sensor.measurement().unwrap();
         // Assert
         assert_eq!(data.co2, 1000_u16);
-        assert_eq!(data.temperature, 22.000198_f32);
-        assert_eq!(data.humidity, 50_f32);
+        assert_eq!(data.temperature, 22.00122_f32);
+        assert_eq!(data.humidity, 50.000763_f32);
 
         let mut mock = sensor.destroy();
         mock.done();

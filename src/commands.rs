@@ -27,6 +27,10 @@ pub enum Command {
     SetAutomaticSelfCalibrationEnabled,
     /// Get the current state of the automatic self-calibration.
     GetAutomaticSelfCalibrationEnabled,
+    /// Set the target background (lower-bound) CO2 level the sensor expects to measure
+    SetAutomaticSelfCalibrationTarget,
+    /// Get the target background (lower-bound) CO2 level
+    GetAutomaticSelfCalibrationTarget,
     /// Start low power periodic measurement, signal update interval is approximately 30 seconds.
     StartLowPowerPeriodicMeasurement,
     /// Is data ready for read-out?
@@ -76,6 +80,8 @@ impl Command {
             Self::PerformForcedRecalibration => (0x362F, 400, false),
             Self::SetAutomaticSelfCalibrationEnabled => (0x2416, 1, false),
             Self::GetAutomaticSelfCalibrationEnabled => (0x2313, 1, false),
+            Self::SetAutomaticSelfCalibrationTarget => (0x243A, 1, false),
+            Self::GetAutomaticSelfCalibrationTarget => (0x233F, 1, false),
             Self::StartLowPowerPeriodicMeasurement => (0x21AC, 0, false),
             Self::GetDataReadyStatus => (0xE4B8, 1, true),
             Self::PersistSettings => (0x3615, 800, false),

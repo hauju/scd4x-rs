@@ -69,7 +69,7 @@ fn main() -> Result<(), Error<I2CError>> {
     sensor.reinit()?;
 
     let serial = sensor.serial_number()?;
-    info!("Serial: {:#04x}", serial);
+    info!("Serial: {serial:#04x}");
 
     debug!("Starting periodic measurement");
     sensor.start_periodic_measurement()?;
@@ -85,7 +85,7 @@ fn main() -> Result<(), Error<I2CError>> {
                 Ok(true) => break,
                 Ok(false) => std::thread::sleep(*opts.poll_delay),
                 Err(e) => {
-                    error!("Failed to poll for data ready: {:?}", e);
+                    error!("Failed to poll for data ready: {e:?}");
                     std::process::exit(-2);
                 }
             }
@@ -95,7 +95,7 @@ fn main() -> Result<(), Error<I2CError>> {
         let data = match sensor.measurement() {
             Ok(v) => v,
             Err(e) => {
-                error!("Failed to read measurement: {:?}", e);
+                error!("Failed to read measurement: {e:?}");
                 std::process::exit(-3);
             }
         };

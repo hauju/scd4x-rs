@@ -127,6 +127,20 @@ where
         Ok(())
     }
 
+    /// Get the current background CO2 level the sensor is configured to expect. Factory default is 400 ppm.
+    pub fn automatic_self_calibration_target(&mut self) -> Result<u16, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::GetAutomaticSelfCalibrationTarget, &mut buf)?;
+        let ppm = u16::from_be_bytes([buf[0], buf[1]]);
+        Ok(ppm)
+    }
+
+    /// Set the background CO2 level the sensor should expect to measure
+    pub fn set_automatic_self_calibration_target(&mut self, ppm: u16) -> Result<(), Error<E>> {
+        self.write_command_with_data(Command::SetAutomaticSelfCalibrationTarget, ppm)?;
+        Ok(())
+    }
+
     /// Start low power periodic measurements
     pub fn start_low_power_periodic_measurements(&mut self) -> Result<(), Error<E>> {
         self.write_command(Command::StartLowPowerPeriodicMeasurement)?;

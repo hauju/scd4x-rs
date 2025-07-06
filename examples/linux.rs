@@ -14,7 +14,7 @@ fn main() {
     sensor.reinit().unwrap();
 
     let serial = sensor.serial_number().unwrap();
-    println!("serial: {:#04x}", serial);
+    println!("serial: {serial:#04x}");
 
     sensor.start_periodic_measurement().unwrap();
     println!("Waiting for first measurement... (5 sec)");

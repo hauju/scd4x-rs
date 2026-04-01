@@ -73,8 +73,8 @@ where
 
     /// Set sensor temperature offset
     pub async fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
-        let t_offset = (offset * 65536.0 / 175.0) as i16;
-        self.write_command_with_data(Command::SetTemperatureOffset, t_offset as u16)
+        let t_offset = temp_offset_to_u16(offset);
+        self.write_command_with_data(Command::SetTemperatureOffset, t_offset)
             .await?;
         Ok(())
     }

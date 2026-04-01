@@ -4,41 +4,36 @@ use linux_embedded_hal as hal;
 
 use log::{debug, error, info};
 
+use clap::Parser;
 use humantime::Duration as HumanDuration;
 use simplelog::{LevelFilter, TermLogger};
-use structopt::StructOpt;
 
 use scd4x::{Error, Scd4x};
 
-#[derive(StructOpt)]
-#[structopt(name = "scd4x-util")]
-/// A Command Line Interface (CLI) for interacting with a sensiron SCD4x environmental sensor via Linux I2C
+/// A Command Line Interface (CLI) for interacting with a Sensirion SCD4x environmental sensor via Linux I2C
+#[derive(Parser)]
+#[command(name = "scd4x-util")]
 pub struct Options {
-    /// Specify the i2c interface to use to connect to the scd30 device
-    #[structopt(
-        short = "d",
-        long = "i2c",
-        default_value = "/dev/i2c-1",
-        env = "SCD4x_I2C"
-    )]
+    /// Specify the i2c interface to use to connect to the SCD4x device
+    #[arg(short = 'd', long = "i2c", default_value = "/dev/i2c-1", env = "SCD4x_I2C")]
     i2c: String,
 
     /// Delay between sensor poll operations
-    #[structopt(long = "poll-delay", default_value = "100ms")]
+    #[arg(long = "poll-delay", default_value = "100ms")]
     pub poll_delay: HumanDuration,
 
     /// Number of allowed I2C errors (per measurement attempt) prior to exiting
-    #[structopt(long = "allowed-errors", default_value = "3")]
+    #[arg(long = "allowed-errors", default_value = "3")]
     pub allowed_errors: usize,
 
-    /// Enable verbose logging
-    #[structopt(long = "log-level", default_value = "info")]
+    /// Log level
+    #[arg(long = "log-level", default_value = "info")]
     level: LevelFilter,
 }
 
 fn main() -> Result<(), Error<I2CError>> {
     // Load options
-    let opts = Options::from_args();
+    let opts = Options::parse();
 
     // Setup logging
     TermLogger::init(

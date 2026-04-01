@@ -4,6 +4,7 @@
 [![docs.rs](https://docs.rs/scd4x/badge.svg)](https://docs.rs/scd4x)
 [![License](https://img.shields.io/crates/l/scd4x)](https://crates.io/crates/scd4x)
 [![no_std](https://img.shields.io/badge/target-no__std-blue)](https://crates.io/crates/scd4x)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
 
 A platform-agnostic `no_std` Rust driver for the [Sensirion SCD4x](https://sensirion.com/products/catalog/SCD41/) CO2 sensor family (SCD40/SCD41), built on [embedded-hal](https://docs.rs/embedded-hal/) traits. Based on [embedded-i2c-scd4x](https://github.com/Sensirion/embedded-i2c-scd4x) and [sgpc3-rs](https://github.com/mjaakkol/sgpc3-rs).
 
@@ -37,15 +38,14 @@ scd4x = "0.5"
 # scd4x = { version = "0.5", features = ["embedded-hal-async"] }
 ```
 
-### Examples
+### Full Examples
 
-See examples for [ESP32-C3](examples/esp32c3.rs) and [Linux](examples/linux.rs).
+- [Linux / Raspberry Pi](examples/linux/) — blocking driver with `linux-embedded-hal`
+- [ESP32-C3 Embassy](examples/embassy-esp32c3/) — async driver with `esp-hal` and Embassy
 
-```bash
-cargo run --example linux
-```
+### CLI Utility
 
-Run the built-in CLI utility to read serial number and measurements:
+Run the built-in CLI to read serial number and measurements (Linux only):
 ```bash
 cargo run --features="util"
 ```

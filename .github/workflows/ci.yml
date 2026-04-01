@@ -11,7 +11,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - name: Check format
         run: cargo fmt --check
@@ -19,7 +19,7 @@ jobs:
   unused-dependencies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-machete
@@ -30,10 +30,18 @@ jobs:
       - name: Check for unused dependencies
         run: cargo machete
 
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@1.85
+      - name: Check MSRV
+        run: cargo check --all-features
+
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - name: Check for clippy warnings
         run: cargo clippy --all-targets --all-features --color always -- -D warnings
@@ -41,7 +49,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - name: Run tests
         run: cargo test --verbose
@@ -60,7 +68,7 @@ jobs:
           - "scd41,defmt"
           - "util"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build (${{ matrix.features || 'default' }})

@@ -10,6 +10,7 @@ keywords = ["scd40", "scd41", "sensirion", "driver", "embedded-hal-driver"]
 categories = ["embedded", "no-std"]
 readme = "README.md"
 edition = "2024"
+rust-version = "1.85"
 default-run = "scd4x-util"
 
 [features]

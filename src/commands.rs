@@ -1,4 +1,5 @@
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 /// List of SCD4x sensor commands.
 pub enum Command {
     /// Start periodic measurement, signal update interval is 5 seconds.

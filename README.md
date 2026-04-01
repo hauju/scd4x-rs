@@ -1,30 +1,53 @@
 # Sensirion I2C SCD4x Driver
 
-This library provides an embedded `no_std` driver for the [Sensirion SCD4x series](https://www.sensirion.com/de/umweltsensoren/evaluationskit-sek-environmental-sensing/evaluationskit-sek-scd41/). This driver was built using [embedded-hal](https://docs.rs/embedded-hal/) traits. The implementaion are based on [embedded-i2c-scd4x](https://github.com/Sensirion/embedded-i2c-scd4x) and [sgpc3-rs](https://github.com/mjaakkol/sgpc3-rs).
+[![crates.io](https://img.shields.io/crates/v/scd4x.svg)](https://crates.io/crates/scd4x)
+[![docs.rs](https://docs.rs/scd4x/badge.svg)](https://docs.rs/scd4x)
+[![License](https://img.shields.io/crates/l/scd4x)](https://crates.io/crates/scd4x)
+[![no_std](https://img.shields.io/badge/target-no__std-blue)](https://crates.io/crates/scd4x)
+
+A platform-agnostic `no_std` Rust driver for the [Sensirion SCD4x](https://sensirion.com/products/catalog/SCD41/) CO2 sensor family (SCD40/SCD41), built on [embedded-hal](https://docs.rs/embedded-hal/) traits. Based on [embedded-i2c-scd4x](https://github.com/Sensirion/embedded-i2c-scd4x) and [sgpc3-rs](https://github.com/mjaakkol/sgpc3-rs).
 
 ## Sensirion SCD4x
 
-The SCD4x is a miniature carbon dioxide sensor. It also measure temperature and relative humidity.
+The SCD4x is a miniature CO2, temperature, and relative humidity sensor using photoacoustic NDIR sensing.
 
-Further information: [Datasheet CO2 Sensor SCD4x](https://sensirion.com/media/documents/48C4B7FB/67FE0194/CD_DS_SCD4x_Datasheet_D1.pdf)
+Further information: [Datasheet SCD4x](https://sensirion.com/media/documents/48C4B7FB/67FE0194/CD_DS_SCD4x_Datasheet_D1.pdf)
+
+## Features
+
+- Full SCD4x command set (periodic & single-shot measurements, calibration, configuration)
+- SCD41-specific commands behind the `scd41` feature flag (single-shot, power down/wake up)
+- Async support via the `embedded-hal-async` feature
+- Optional `thiserror` integration for `std` environments
+- Blocking and non-blocking measurement modes
 
 ## Usage
 
-Run scd4x-util to read the serial number and the measurement output.
-```bash
-cargo run --features="util"
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+scd4x = "0.4"
+
+# For SCD41-specific features (single-shot, power management):
+# scd4x = { version = "0.4", features = ["scd41"] }
+
+# For async support:
+# scd4x = { version = "0.4", features = ["embedded-hal-async"] }
 ```
 
-See an example using `linux-embedded-hal` in `examples/linux.rs`.
+### Examples
+
+See examples for [ESP32-C3](examples/esp32c3.rs) and [Linux](examples/linux.rs).
+
 ```bash
 cargo run --example linux
 ```
 
-## Development Status
-
-The driver is in an early development state. It allows you to:
-- Get the serial number.
-- Read the measurement output.
+Run the built-in CLI utility to read serial number and measurements:
+```bash
+cargo run --features="util"
+```
 
 ## License
 

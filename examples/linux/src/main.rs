@@ -1,3 +1,12 @@
+//! SCD4x example for Linux (e.g. Raspberry Pi).
+//!
+//! Reads CO2, temperature, and humidity from the sensor via I2C.
+//!
+//! # Run
+//! ```bash
+//! cargo run --release
+//! ```
+
 use embedded_hal::delay::DelayNs;
 use hal::{Delay, I2cdev};
 use linux_embedded_hal as hal;
@@ -24,7 +33,7 @@ fn main() {
         let data = sensor.measurement().unwrap();
 
         println!(
-            "CO2: {0}, Temperature: {1:#.2} °C, Humidity: {2:#.2} RH",
+            "CO2: {0}, Temperature: {1:#.2} \u{00b0}C, Humidity: {2:#.2} RH",
             data.co2, data.temperature, data.humidity
         );
     }

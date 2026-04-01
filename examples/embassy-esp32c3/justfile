@@ -1,0 +1,23 @@
+# Default recipe
+default:
+    @just --list
+
+# Build
+build:
+    cargo build --release
+
+# Flash and monitor
+flash:
+    cargo run --release
+
+# Flash without monitoring
+flash-no-monitor port="/dev/ttyUSB0":
+    espflash flash --port {{ port }} target/riscv32imc-unknown-none-elf/release/scd4x-embassy-esp32c3-example
+
+# Monitor serial output
+monitor port="/dev/ttyUSB0":
+    espflash monitor --port {{ port }}
+
+# Check
+check:
+    cargo check

@@ -1,0 +1,15 @@
+# Default recipe
+default:
+    @just --list
+
+# Build for a target (default: aarch64-unknown-linux-gnu)
+build target="aarch64-unknown-linux-gnu":
+    cargo build --release --target {{ target }}
+
+# Run on the local Linux host
+run:
+    cargo run --release
+
+# Check
+check:
+    cargo check

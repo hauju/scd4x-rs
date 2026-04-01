@@ -1,6 +1,6 @@
 [package]
 name = "scd4x"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Hauke Jung <hauke.jung@outlook.de>"]
 documentation = "https://docs.rs/scd4x"
 repository = "https://github.com/hauju/scd4x-rs.git"
@@ -37,8 +37,10 @@ humantime = { version = "2.2.0", optional = true }
 
 
 [dev-dependencies]
-linux-embedded-hal = "0.4.0"
 embedded-hal-mock = "0.11.1"
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dev-dependencies]
+linux-embedded-hal = "0.4.0"
 
 [[bin]]
 name = "scd4x-util"

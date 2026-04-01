@@ -16,7 +16,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! scd4x = { version = "0.3", features = ["embedded-hal-async"] }
+//! scd4x = { version = "0.5", features = ["embedded-hal-async"] }
 //! ```
 
 #![deny(unsafe_code)]

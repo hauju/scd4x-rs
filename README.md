@@ -27,7 +27,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scd4x = "0.4"
+scd4x = "0.5"
 
 # For SCD41-specific features (single-shot, power management):
 # scd4x = { version = "0.4", features = ["scd41"] }

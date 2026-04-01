@@ -351,6 +351,11 @@ mod tests {
     use self::hal::i2c::{Mock as I2cMock, Transaction};
     use super::*;
 
+    /// Build a 3-byte response word: [msb, lsb, crc]
+    fn word(msb: u8, lsb: u8) -> [u8; 3] {
+        [msb, lsb, crc8::calculate(&[msb, lsb])]
+    }
+
     /// Test the get_serial_number function
     #[test]
     fn test_get_serial_number() {
@@ -394,6 +399,270 @@ mod tests {
         assert_eq!(data.co2, 1000_u16);
         assert_eq!(data.temperature, 22.00122_f32);
         assert_eq!(data.humidity, 50.000763_f32);
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test temperature offset round-trip conversion
+    #[test]
+    fn test_temp_offset_round_trip() {
+        let offsets = [0.0_f32, 1.0, 5.0, 10.5, 0.1];
+        for original in offsets {
+            let encoded = temp_offset_to_u16(original);
+            let buf = [
+                (encoded >> 8) as u8,
+                encoded as u8,
+                0, // CRC placeholder (not checked here)
+            ];
+            let decoded = temp_offset_from_bytes(buf);
+            assert!(
+                (original - decoded).abs() < 0.01,
+                "Round-trip failed for {original}: got {decoded}"
+            );
+        }
+    }
+
+    /// Test that idle-only commands fail when periodic measurement is running
+    #[test]
+    fn test_not_allowed_when_running() {
+        let (start_cmd, _, _) = Command::StartPeriodicMeasurement.as_tuple();
+        let expectations = [Transaction::write(
+            SCD4X_I2C_ADDRESS,
+            start_cmd.to_be_bytes().to_vec(),
+        )];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        sensor.start_periodic_measurement().unwrap();
+
+        // These commands are not allowed during periodic measurement
+        assert_eq!(sensor.serial_number(), Err(Error::NotAllowed));
+        assert_eq!(sensor.temperature_offset(), Err(Error::NotAllowed));
+        assert_eq!(sensor.self_test_is_ok(), Err(Error::NotAllowed));
+        assert_eq!(sensor.factory_reset(), Err(Error::NotAllowed));
+        assert_eq!(sensor.reinit(), Err(Error::NotAllowed));
+        assert_eq!(sensor.persist_settings(), Err(Error::NotAllowed));
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test that commands allowed during measurement still work
+    #[test]
+    fn test_allowed_when_running() {
+        let (start_cmd, _, _) = Command::StartPeriodicMeasurement.as_tuple();
+        let (read_cmd, _, _) = Command::ReadMeasurement.as_tuple();
+        let (ready_cmd, _, _) = Command::GetDataReadyStatus.as_tuple();
+        let ready_word = word(0x80, 0x01);
+        let co2_word = word(0x01, 0xF4);
+        let temp_word = word(0x62, 0x03);
+        let hum_word = word(0x80, 0x00);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, start_cmd.to_be_bytes().to_vec()),
+            // data_ready_status
+            Transaction::write(SCD4X_I2C_ADDRESS, ready_cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, ready_word.to_vec()),
+            // measurement
+            Transaction::write(SCD4X_I2C_ADDRESS, read_cmd.to_be_bytes().to_vec()),
+            Transaction::read(
+                SCD4X_I2C_ADDRESS,
+                [co2_word, temp_word, hum_word].concat(),
+            ),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        sensor.start_periodic_measurement().unwrap();
+        assert!(sensor.data_ready_status().unwrap());
+        let data = sensor.measurement().unwrap();
+        assert_eq!(data.co2, 500);
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test data_ready_status returns false when lower 11 bits are all zero
+    #[test]
+    fn test_data_not_ready() {
+        let (cmd, _, _) = Command::GetDataReadyStatus.as_tuple();
+        // 0xF800 => upper bits set, lower 11 bits zero => not ready
+        let w = word(0xF8, 0x00);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert!(!sensor.data_ready_status().unwrap());
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test data_ready_status returns true when any lower 11 bits are set
+    #[test]
+    fn test_data_ready() {
+        let (cmd, _, _) = Command::GetDataReadyStatus.as_tuple();
+        let w = word(0x00, 0x01);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert!(sensor.data_ready_status().unwrap());
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test FRC correction with valid response
+    #[test]
+    fn test_frc_correction_valid() {
+        // 0x8000 + 50 = 0x8032 means a correction of 50 ppm
+        let result = check_frc_correction::<()>(0x8032);
+        assert_eq!(result, Ok(50));
+    }
+
+    /// Test FRC correction returns zero correction
+    #[test]
+    fn test_frc_correction_zero() {
+        let result = check_frc_correction::<()>(0x8000);
+        assert_eq!(result, Ok(0));
+    }
+
+    /// Test FRC correction returns error on 0xFFFF (failed)
+    #[test]
+    fn test_frc_correction_failed() {
+        let result = check_frc_correction::<()>(0xFFFF);
+        assert_eq!(result, Err(Error::Internal));
+    }
+
+    /// Test FRC correction returns error on value below 0x8000
+    #[test]
+    fn test_frc_correction_underflow() {
+        let result = check_frc_correction::<()>(0x7FFF);
+        assert_eq!(result, Err(Error::Internal));
+    }
+
+    /// Test self-test passes (returns 0x0000)
+    #[test]
+    fn test_self_test_pass() {
+        let (cmd, _, _) = Command::PerformSelfTest.as_tuple();
+        let w = word(0x00, 0x00);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert!(sensor.self_test_is_ok().unwrap());
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test self-test fails (returns non-zero)
+    #[test]
+    fn test_self_test_fail() {
+        let (cmd, _, _) = Command::PerformSelfTest.as_tuple();
+        let w = word(0x00, 0x01);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert!(!sensor.self_test_is_ok().unwrap());
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test stop_periodic_measurement clears is_running flag
+    #[test]
+    fn test_stop_clears_running() {
+        let (start_cmd, _, _) = Command::StartPeriodicMeasurement.as_tuple();
+        let (stop_cmd, _, _) = Command::StopPeriodicMeasurement.as_tuple();
+        let (serial_cmd, _, _) = Command::GetSerialNumber.as_tuple();
+        let w1 = word(0x00, 0x01);
+        let w2 = word(0x00, 0x02);
+        let w3 = word(0x00, 0x03);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, start_cmd.to_be_bytes().to_vec()),
+            Transaction::write(SCD4X_I2C_ADDRESS, stop_cmd.to_be_bytes().to_vec()),
+            Transaction::write(SCD4X_I2C_ADDRESS, serial_cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, [w1, w2, w3].concat()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        sensor.start_periodic_measurement().unwrap();
+        // serial_number should fail while running
+        assert_eq!(sensor.serial_number(), Err(Error::NotAllowed));
+        // after stopping, it should work again
+        sensor.stop_periodic_measurement().unwrap();
+        assert!(sensor.serial_number().is_ok());
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test altitude get
+    #[test]
+    fn test_get_altitude() {
+        let (cmd, _, _) = Command::GetSensorAltitude.as_tuple();
+        // 0x0258 = 600 meters
+        let w = word(0x02, 0x58);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert_eq!(sensor.altitude().unwrap(), 600);
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test automatic self-calibration status
+    #[test]
+    fn test_asc_enabled() {
+        let (cmd, _, _) = Command::GetAutomaticSelfCalibrationEnabled.as_tuple();
+        let w = word(0x00, 0x01);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert!(sensor.automatic_self_calibration().unwrap());
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
+    /// Test automatic self-calibration disabled
+    #[test]
+    fn test_asc_disabled() {
+        let (cmd, _, _) = Command::GetAutomaticSelfCalibrationEnabled.as_tuple();
+        let w = word(0x00, 0x00);
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, w.to_vec()),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+
+        assert!(!sensor.automatic_self_calibration().unwrap());
 
         let mut mock = sensor.destroy();
         mock.done();

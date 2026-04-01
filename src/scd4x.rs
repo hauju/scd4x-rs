@@ -465,10 +465,7 @@ mod tests {
             Transaction::read(SCD4X_I2C_ADDRESS, ready_word.to_vec()),
             // measurement
             Transaction::write(SCD4X_I2C_ADDRESS, read_cmd.to_be_bytes().to_vec()),
-            Transaction::read(
-                SCD4X_I2C_ADDRESS,
-                [co2_word, temp_word, hum_word].concat(),
-            ),
+            Transaction::read(SCD4X_I2C_ADDRESS, [co2_word, temp_word, hum_word].concat()),
         ];
         let mock = I2cMock::new(&expectations);
         let mut sensor = Scd4x::new(mock, DelayMock);

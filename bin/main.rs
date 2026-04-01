@@ -15,7 +15,12 @@ use scd4x::{Error, Scd4x};
 #[command(name = "scd4x-util")]
 pub struct Options {
     /// Specify the i2c interface to use to connect to the SCD4x device
-    #[arg(short = 'd', long = "i2c", default_value = "/dev/i2c-1", env = "SCD4x_I2C")]
+    #[arg(
+        short = 'd',
+        long = "i2c",
+        default_value = "/dev/i2c-1",
+        env = "SCD4x_I2C"
+    )]
     i2c: String,
 
     /// Delay between sensor poll operations

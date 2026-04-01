@@ -19,6 +19,7 @@ Further information: [Datasheet SCD4x](https://sensirion.com/media/documents/48C
 - SCD41-specific commands behind the `scd41` feature flag (single-shot, power down/wake up)
 - Async support via the `embedded-hal-async` feature
 - Optional `thiserror` integration for `std` environments
+- Optional `defmt` support for embedded logging
 - Blocking and non-blocking measurement modes
 
 ## Usage
@@ -30,10 +31,10 @@ Add to your `Cargo.toml`:
 scd4x = "0.5"
 
 # For SCD41-specific features (single-shot, power management):
-# scd4x = { version = "0.4", features = ["scd41"] }
+# scd4x = { version = "0.5", features = ["scd41"] }
 
 # For async support:
-# scd4x = { version = "0.4", features = ["embedded-hal-async"] }
+# scd4x = { version = "0.5", features = ["embedded-hal-async"] }
 ```
 
 ### Examples

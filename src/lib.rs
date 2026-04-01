@@ -1,6 +1,6 @@
-//! This library provides an embedded `no_std` driver for the [Sensirion SCD4x series](https://www.sensirion.com/de/umweltsensoren/evaluationskit-sek-environmental-sensing/evaluationskit-sek-scd41/).
-//! This driver was built using [`embedded-hal`](https://docs.rs/embedded-hal/) traits.
-//! The implementaion are based on [embedded-i2c-scd4x](https://github.com/Sensirion/embedded-i2c-scd4x) and [sgpc3-rs](https://github.com/mjaakkol/sgpc3-rs).
+//! A platform-agnostic `no_std` Rust driver for the [Sensirion SCD4x](https://sensirion.com/products/catalog/SCD41/) CO2 sensor family (SCD40/SCD41),
+//! built on [`embedded-hal`](https://docs.rs/embedded-hal/) traits.
+//! Based on [embedded-i2c-scd4x](https://github.com/Sensirion/embedded-i2c-scd4x) and [sgpc3-rs](https://github.com/mjaakkol/sgpc3-rs).
 //!
 //! ## `embedded-hal-async` Support
 //!

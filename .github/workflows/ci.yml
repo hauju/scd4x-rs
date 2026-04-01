@@ -50,17 +50,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        feature-set:
+        features:
           - ""
+          - "scd41"
+          - "defmt"
+          - "thiserror"
           - "embedded-hal-async"
+          - "scd41,embedded-hal-async"
+          - "scd41,defmt"
           - "util"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          target: armv7-unknown-linux-gnueabihf
       - uses: Swatinem/rust-cache@v2
-      - name: Build
-        run: cargo build --release --verbose
-        
-      
+      - name: Build (${{ matrix.features || 'default' }})
+        run: cargo build --verbose ${{ matrix.features && format('--features "{0}"', matrix.features) || '' }}

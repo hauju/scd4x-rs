@@ -67,6 +67,7 @@ jobs:
           - "scd41,embedded-hal-async"
           - "scd41,defmt"
           - "util"
+          - "fixed"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable

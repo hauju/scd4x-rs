@@ -14,6 +14,9 @@ mod async_impl;
 #[cfg(feature = "embedded-hal-async")]
 pub use async_impl::Scd4xAsync;
 
+#[cfg(feature = "fixed")]
+use fixed::types::{I16F16, U16F16};
+
 /// SCD4X sensor instance. Use related methods to take measurements.
 #[derive(Debug, Default)]
 pub struct Scd4x<I2C, D> {
@@ -70,6 +73,7 @@ where
     }
 
     /// Get sensor temperature offset
+    #[cfg(not(feature = "fixed"))]
     pub fn temperature_offset(&mut self) -> Result<f32, Error<E>> {
         let mut buf = [0; 3];
         self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
@@ -77,8 +81,26 @@ where
         Ok(temp_offset_from_bytes(buf))
     }
 
+    /// Get sensor temperature offset
+    #[cfg(feature = "fixed")]
+    pub fn temperature_offset(&mut self) -> Result<U16F16, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::GetTemperatureOffset, &mut buf)?;
+
+        Ok(temp_offset_from_bytes(buf))
+    }
+
     /// Set sensor temperature offset
+    #[cfg(not(feature = "fixed"))]
     pub fn set_temperature_offset(&mut self, offset: f32) -> Result<(), Error<E>> {
+        let t_offset = temp_offset_to_u16(offset);
+        self.write_command_with_data(Command::SetTemperatureOffset, t_offset)?;
+        Ok(())
+    }
+
+    /// Set sensor temperature offset
+    #[cfg(feature = "fixed")]
+    pub fn set_temperature_offset(&mut self, offset: U16F16) -> Result<(), Error<E>> {
         let t_offset = temp_offset_to_u16(offset);
         self.write_command_with_data(Command::SetTemperatureOffset, t_offset)?;
         Ok(())
@@ -290,6 +312,7 @@ impl RawSensorData {
 }
 
 impl SensorData {
+    #[cfg(not(feature = "fixed"))]
     fn from_raw(raw: RawSensorData) -> Self {
         let RawSensorData {
             co2,
@@ -300,6 +323,20 @@ impl SensorData {
             co2,
             temperature: (temperature as f32 * 175_f32) / (u16::MAX as f32) - 45_f32,
             humidity: (humidity as f32 * 100_f32) / (u16::MAX as f32),
+        }
+    }
+
+    #[cfg(feature = "fixed")]
+    fn from_raw(raw: RawSensorData) -> Self {
+        let RawSensorData {
+            co2,
+            temperature,
+            humidity,
+        } = raw;
+        SensorData {
+            co2,
+            temperature: I16F16::from_bits(temperature as i32 * 175) - I16F16::from_num(45),
+            humidity: U16F16::from_bits(humidity as u32 * 100),
         }
     }
 }
@@ -324,13 +361,26 @@ fn encode_cmd_with_data(command: u16, data: u16) -> [u8; 5] {
     buf
 }
 
+#[cfg(not(feature = "fixed"))]
 fn temp_offset_from_bytes(buf: [u8; 3]) -> f32 {
     let raw_offset = u16::from_be_bytes([buf[0], buf[1]]);
     (raw_offset as f32 * 175_f32) / (u16::MAX as f32)
 }
 
+#[cfg(feature = "fixed")]
+fn temp_offset_from_bytes(buf: [u8; 3]) -> U16F16 {
+    let raw_offset = u16::from_be_bytes([buf[0], buf[1]]);
+    U16F16::from_bits(raw_offset as u32 * 175)
+}
+
+#[cfg(not(feature = "fixed"))]
 fn temp_offset_to_u16(offset: f32) -> u16 {
     (((offset * (u16::MAX as f32)) / 175_f32) as i32) as u16
+}
+
+#[cfg(feature = "fixed")]
+fn temp_offset_to_u16(offset: U16F16) -> u16 {
+    ((offset.to_bits() + (175 / 2)) / 175) as u16
 }
 
 fn check_frc_correction<E>(frc_correction: u16) -> Result<u16, Error<E>> {
@@ -381,6 +431,7 @@ mod tests {
 
     /// Test the measurement function
     #[test]
+    #[cfg(not(feature = "fixed"))]
     fn test_measurement() {
         // Arrange
         let (cmd, _, _) = Command::ReadMeasurement.as_tuple();
@@ -404,8 +455,35 @@ mod tests {
         mock.done();
     }
 
+    /// Test the measurement function
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn test_measurement() {
+        // Arrange
+        let (cmd, _, _) = Command::ReadMeasurement.as_tuple();
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(
+                SCD4X_I2C_ADDRESS,
+                vec![0x03, 0xE8, 0xD4, 0x62, 0x03, 0x5E, 0x80, 0x00, 0xA2],
+            ),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+        // Act
+        let data = sensor.measurement().unwrap();
+        // Assert
+        assert_eq!(data.co2, 1000_u16);
+        assert!((data.temperature - I16F16::from_num(22.00122)).abs() < 0.01);
+        assert!(data.humidity.abs_diff(U16F16::from_num(50.000763)) < 0.01);
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
     /// Test temperature offset round-trip conversion
     #[test]
+    #[cfg(not(feature = "fixed"))]
     fn test_temp_offset_round_trip() {
         let offsets = [0.0_f32, 1.0, 5.0, 10.5, 0.1];
         for original in offsets {
@@ -418,6 +496,32 @@ mod tests {
             let decoded = temp_offset_from_bytes(buf);
             assert!(
                 (original - decoded).abs() < 0.01,
+                "Round-trip failed for {original}: got {decoded}"
+            );
+        }
+    }
+
+    /// Test temperature offset round-trip conversion
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn test_temp_offset_round_trip() {
+        let offsets = [
+            U16F16::from_num(0.0),
+            U16F16::from_num(1.0),
+            U16F16::from_num(5.0),
+            U16F16::from_num(10.5),
+            U16F16::from_num(0.1),
+        ];
+        for original in offsets {
+            let encoded = temp_offset_to_u16(original);
+            let buf = [
+                (encoded >> 8) as u8,
+                encoded as u8,
+                0, // CRC placeholder (not checked here)
+            ];
+            let decoded = temp_offset_from_bytes(buf);
+            assert!(
+                (original - decoded) < 0.01,
                 "Round-trip failed for {original}: got {decoded}"
             );
         }

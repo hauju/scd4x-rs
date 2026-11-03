@@ -29,13 +29,13 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scd4x = "0.5"
+scd4x = "0.6"
 
 # For SCD41-specific features (single-shot, power management):
-# scd4x = { version = "0.5", features = ["scd41"] }
+# scd4x = { version = "0.6", features = ["scd41"] }
 
 # For async support:
-# scd4x = { version = "0.5", features = ["embedded-hal-async"] }
+# scd4x = { version = "0.6", features = ["embedded-hal-async"] }
 ```
 
 ### Full Examples

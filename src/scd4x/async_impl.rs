@@ -106,7 +106,7 @@ where
     pub async fn forced_recalibration(
         &mut self,
         target_co2_concentration: u16,
-    ) -> Result<u16, Error<E>> {
+    ) -> Result<i16, Error<E>> {
         let frc_correction = self
             .delayed_read_cmd_with_data(
                 Command::PerformForcedRecalibration,

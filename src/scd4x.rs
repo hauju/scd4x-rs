@@ -105,7 +105,7 @@ where
     }
 
     /// Perform forced recalibration
-    pub fn forced_recalibration(&mut self, target_co2_concentration: u16) -> Result<u16, Error<E>> {
+    pub fn forced_recalibration(&mut self, target_co2_concentration: u16) -> Result<i16, Error<E>> {
         let frc_correction = self.delayed_read_cmd_with_data(
             Command::PerformForcedRecalibration,
             target_co2_concentration,
@@ -333,14 +333,11 @@ fn temp_offset_to_u16(offset: f32) -> u16 {
     (((offset * (u16::MAX as f32)) / 175_f32) as i32) as u16
 }
 
-fn check_frc_correction<E>(frc_correction: u16) -> Result<u16, Error<E>> {
+fn check_frc_correction<E>(frc_correction: u16) -> Result<i16, Error<E>> {
     if frc_correction == u16::MAX {
         return Err(Error::Internal);
     }
-    match frc_correction.checked_sub(0x8000) {
-        Some(concentration) => Ok(concentration),
-        None => Err(Error::Internal),
-    }
+    Ok(frc_correction.wrapping_sub(0x8000) as i16)
 }
 
 #[cfg(test)]
@@ -538,11 +535,13 @@ mod tests {
         assert_eq!(result, Err(Error::Internal));
     }
 
-    /// Test FRC correction returns error on value below 0x8000
+    /// Test FRC correction returns negative correction for values below 0x8000
     #[test]
-    fn test_frc_correction_underflow() {
+    fn test_frc_correction_negative() {
         let result = check_frc_correction::<()>(0x7FFF);
-        assert_eq!(result, Err(Error::Internal));
+        assert_eq!(result, Ok(-1));
+        let result = check_frc_correction::<()>(0x0000);
+        assert_eq!(result, Ok(-32768));
     }
 
     /// Test self-test passes (returns 0x0000)

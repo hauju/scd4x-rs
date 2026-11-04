@@ -4,7 +4,7 @@ use hal::i2c::I2c;
 
 use crate::commands::Command;
 use crate::error::Error;
-use crate::types::{RawSensorData, SensorData};
+use crate::types::{RawSensorData, SensorData, SensorVariant};
 use sensirion_i2c::{crc8, i2c};
 
 const SCD4X_I2C_ADDRESS: u8 = 0x62;
@@ -193,6 +193,15 @@ where
         Ok(())
     }
 
+    /// Gets the SCD4x sensor variant
+    pub fn sensor_variant(&mut self) -> Result<SensorVariant, Error<E>> {
+        let mut buf = [0; 3];
+        self.delayed_read_cmd(Command::GetSensorVariant, &mut buf)?;
+
+        let raw_variant = u16::from_be_bytes([buf[0], buf[1]]);
+        Ok(SensorVariant::from_raw(raw_variant))
+    }
+
     /// On-demand measurement of CO₂ concentration, relative humidity and temperature.
     /// The sensor output is read with the measurement method.
     /// Takes around 5 seconds to complete
@@ -304,6 +313,19 @@ impl SensorData {
     }
 }
 
+impl SensorVariant {
+    fn from_raw(raw: u16) -> SensorVariant {
+        // Datasheet section 3.10.6. notes that response bits 0..11 may differ and therefore are not
+        // significant (i.e. only the top 4 of the 16 bits matter)
+        match raw >> 12 {
+            0 => SensorVariant::SCD40,
+            1 => SensorVariant::SCD41,
+            5 => SensorVariant::SCD43,
+            _ => SensorVariant::Unknown,
+        }
+    }
+}
+
 fn serial_number_from_bytes(buf: [u8; 9]) -> u64 {
     (u64::from(buf[0]) << 40)
         | (u64::from(buf[1]) << 32)
@@ -376,6 +398,26 @@ mod tests {
         mock.done();
     }
 
+    /// Test the get_sensor_variant function
+    #[test]
+    fn test_get_sensor_variant() {
+        // Arrange
+        let (cmd, _, _) = Command::GetSensorVariant.as_tuple();
+        let expectations = [
+            Transaction::write(SCD4X_I2C_ADDRESS, cmd.to_be_bytes().to_vec()),
+            Transaction::read(SCD4X_I2C_ADDRESS, vec![0x14, 0x40, 0x51]),
+        ];
+        let mock = I2cMock::new(&expectations);
+        let mut sensor = Scd4x::new(mock, DelayMock);
+        // Act
+        let variant = sensor.sensor_variant().unwrap();
+        // Assert
+        assert_eq!(variant, SensorVariant::SCD41);
+
+        let mut mock = sensor.destroy();
+        mock.done();
+    }
+
     /// Test the measurement function
     #[test]
     fn test_measurement() {
@@ -439,6 +481,7 @@ mod tests {
         assert_eq!(sensor.self_test_is_ok(), Err(Error::NotAllowed));
         assert_eq!(sensor.factory_reset(), Err(Error::NotAllowed));
         assert_eq!(sensor.reinit(), Err(Error::NotAllowed));
+        assert_eq!(sensor.sensor_variant(), Err(Error::NotAllowed));
         assert_eq!(sensor.persist_settings(), Err(Error::NotAllowed));
 
         let mut mock = sensor.destroy();

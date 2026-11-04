@@ -49,6 +49,8 @@ pub enum Command {
     PerformFactoryReset,
     /// Reinitializes the sensor by reloading user settings from EEPROM.
     Reinit,
+    /// Reads out the SCD4x sensor variant
+    GetSensorVariant,
     /// Allows on-demand measurements
     #[cfg(feature = "scd41")]
     MeasureSingleShot,
@@ -90,6 +92,7 @@ impl Command {
             Self::PerformSelfTest => (0x3639, 10_000, false),
             Self::PerformFactoryReset => (0x3632, 1200, false),
             Self::Reinit => (0x3646, 20, false),
+            Self::GetSensorVariant => (0x202f, 1, false),
             #[cfg(feature = "scd41")]
             Self::MeasureSingleShot => (0x219D, 5000, false),
             #[cfg(feature = "scd41")]

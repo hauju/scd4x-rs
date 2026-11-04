@@ -15,3 +15,12 @@ pub struct RawSensorData {
     pub temperature: u16,
     pub humidity: u16,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum SensorVariant {
+    SCD40,
+    SCD41,
+    SCD43,
+    Unknown,
+}

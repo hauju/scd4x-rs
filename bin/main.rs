@@ -53,7 +53,7 @@ fn main() -> Result<(), Error<I2CError>> {
     let i2c = match I2cdev::new(&opts.i2c) {
         Ok(v) => v,
         Err(e) => {
-            error!("Error opening I2C device '{}': {:?}", &opts.i2c, e);
+            error!("Error opening I2C device '{}': {:?}", opts.i2c, e);
             std::process::exit(-1);
         }
     };
